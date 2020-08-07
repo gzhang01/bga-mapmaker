@@ -12,23 +12,20 @@
 
 
 <div id="board">
-
+    <!-- BEGIN county_location -->
+        <div id="county_location_{X}_{Y}"
+             class="county_location"
+             style="left: {LEFT}px; top: {TOP}px;">
+        </div>
+    <!-- END county_location -->
 </div>
 
-<div id="tokens"></div>
+<div id="counties"></div>
 <div id="border"></div>
 
 
 <script type="text/javascript">
-
-// Javascript HTML templates
-
-/*
-// Example:
-var jstpl_some_game_item='<div class="my_game_item" id="my_game_item_${MY_ITEM_ID}"></div>';
-
-*/
-
+    var jstpl_county = '<div id="county_${x_y}" class="county"></div>';
 </script>  
 
 {OVERALL_GAME_FOOTER}

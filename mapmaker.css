@@ -52,11 +52,12 @@
     width: 750px;
     height: 750px;
     background-image: url("img/board.png");
+    position: relative;
 }
 
-#tokens {
-    width: 50px;
-    height: 50px;
+.county {
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
     background-image: url("img/tokens.png");
 }
@@ -66,6 +67,14 @@
     height: 9px;
     background-image: url("img/border.png");
     transform: rotate(0deg);
+}
+
+.county_location {
+    width: 50px;
+    height: 50px;
+    position: absolute;
+    /* background-color: red; */
+    border-radius: 50%;
 }
 
 /*

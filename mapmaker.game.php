@@ -87,13 +87,63 @@ class mapmaker extends Table
         //self::initStat( 'table', 'table_teststat1', 0 );    // Init a table statistics
         //self::initStat( 'player', 'player_teststat1', 0 );  // Init a player statistics (for all players)
 
-        // TODO: setup the initial game situation here
+        self::initCounties();
        
 
         // Activate first player (which is in general a good idea :) )
         $this->activeNextPlayer();
 
         /************ End of the game initialization *****/
+    }
+
+    private function initCounties() {
+        $playerColors = self::getObjectListFromDB(
+            "SELECT player_color FROM player", true
+        );
+        $leanValues = 
+                array(1, 10, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9);
+        $counties = self::getCountyCoordinates(count($playerColors));
+        shuffle($counties);
+
+        $sql = "INSERT INTO counties (coord_x, coord_y, county_player, county_lean) VALUES ";
+        $sqlValues = array();
+
+        // Add neutral county.
+        $location = array_shift($counties);
+        $sqlValues[] = "('$location[0]','$location[1]','000000','0')";
+        
+        // Add player counties.
+        foreach($playerColors as $color) {
+            foreach($leanValues as $value) {
+                $location = array_shift($counties);
+                $sqlValues[] = 
+                        "('$location[0]','$location[1]','$color','$value')";
+            }
+        }
+        $sql .= implode($sqlValues, ',');
+        self::DbQuery($sql);
+    }
+
+    private function getCountyCoordinates($numPlayers) {
+        $coords = array();
+        for ($x = -3; $x <= 3; $x++) {
+            for ($y = -3 - min($x, 0); $y <= 3 - max($x, 0); $y++) {
+                $coords[] = array($x, $y);
+            }
+        }
+        if ($numPlayers >= 3) {
+            $three_player_extras = array(
+                array(-4, 1), array(-4, 2), array(-4, 3), array(-3, -1), array(-3, 4), array(-2, -2), array(-2, 4), array(-1, -3), array(-1, 4), array(1, -4), array(1, 3), array(2, -4), array(2, 2), array(3, -4), array(3, 1), array(4, -3), array(4, -2), array(4, -1)
+            );
+            $coords = array_merge($coords, $three_player_extras);
+        }
+        if ($numPlayers >= 4) {
+            $four_player_extras = array(
+                array(-5, 2), array(-5, 3), array(-4, 0), array(-4, 4), array(-3, -2), array(-3, 5), array(-2, -3), array(-2, 5), array(0, -4), array(0, 4), array(2, -5), array(2, 3), array(3, -5), array(3, 2), array(4, -4), array(4, 0), array(5, -3), array(5, -2)
+            );
+            $coords = array_merge($coords, $four_player_extras);
+        }
+        return $coords;
     }
 
     /*
@@ -112,11 +162,13 @@ class mapmaker extends Table
         $current_player_id = self::getCurrentPlayerId();    // !! We must only return informations visible by this player !!
     
         // Get information about players
-        // Note: you can retrieve some extra field you added for "player" table in "dbmodel.sql" if you need it.
         $sql = "SELECT player_id id, player_score score FROM player ";
         $result['players'] = self::getCollectionFromDb( $sql );
   
         // TODO: Gather all information about current game situation (visible by player $current_player_id).
+        $result['counties'] = self::getObjectListFromDB(
+            "SELECT coord_x x, coord_y y, county_player color, county_lean val FROM counties"
+        );
   
         return $result;
     }

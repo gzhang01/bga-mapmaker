@@ -24,11 +24,16 @@ function (dojo, declare) {
     return declare("bgagame.mapmaker", ebg.core.gamegui, {
         constructor: function(){
             console.log('mapmaker constructor');
-              
-            // Here, you can init the global variables of your user interface
-            // Example:
-            // this.myGlobalValue = 0;
+            
+            // Side length of spites within tokens.png.
+            this.countySpriteLength = 50;
 
+            // Player colors values.
+            this.redPlayerColor = "ff0000";
+            this.bluePlayerColor = "0000ff";
+            this.greenPlayerColor = "008000";
+            this.yellowPlayerColor = "fd9409";
+            this.neutralCountyColor = "000000";
         },
         
         /*
@@ -57,12 +62,57 @@ function (dojo, declare) {
             }
             
             // TODO: Set up your game interface here, according to "gamedatas"
+            this.placeCountyTiles(gamedatas.counties);
             
  
             // Setup game notifications to handle (see "setupNotifications" method below)
             this.setupNotifications();
 
             console.log( "Ending game setup" );
+        },
+
+        placeCountyTiles: function(counties) {
+            for (var county of counties) {
+                var id = county.x + "_" + county.y;
+                dojo.place(this.format_block("jstpl_county", {
+                    x_y: id,
+                }), "county_location_" + id);
+                dojo.style(
+                    "county_" + id, "backgroundPosition", 
+                    this.getCountyBackgroundPosition(
+                        county.color, parseInt(county.val)));
+            }
+        },
+
+        getCountyBackgroundPosition: function(color, value) {
+            // Spite in image is length 50, but rendering uses width / height
+            // as 40. Offsetting by -5 to center the image.
+            var x = -5;
+            var y = -5;
+            // TODO: Maybe reconfigure tokens.png to avoid this special casing.
+            if (value === 10) {
+                y -= this.countySpriteLength;
+            } else if (value !== 0) {
+                x -= this.countySpriteLength * (value - 1);
+            }
+
+            switch (color) {
+                case this.yellowPlayerColor:
+                    y -= 2 * this.countySpriteLength;
+                    break;
+                case this.greenPlayerColor:
+                    y -= 4 * this.countySpriteLength;
+                    break;
+                case this.bluePlayerColor:
+                    y -= 6 * this.countySpriteLength;
+                    break;
+                case this.neutralCountyColor:
+                    y -= 8 * this.countySpriteLength;
+                    break;
+                default:
+                    break;
+            }
+            return `${x}px ${y}px`;
         },
        
 

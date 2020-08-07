@@ -55,26 +55,19 @@
         
         */
         
-        /*
-        
-        // Example: display a specific HTML block for each player in this game.
-        // (note: the block is defined in your .tpl file like this:
-        //      <!-- BEGIN myblock --> 
-        //          ... my HTML code ...
-        //      <!-- END myblock --> 
-        
-
-        $this->page->begin_block( "mapmaker_mapmaker", "myblock" );
-        foreach( $players as $player )
-        {
-            $this->page->insert_block( "myblock", array( 
-                                                    "PLAYER_NAME" => $player['player_name'],
-                                                    "SOME_VARIABLE" => $some_value
-                                                    ...
-                                                     ) );
+        $this->page->begin_block("mapmaker_mapmaker", "county_location");
+        $scale = 66.7;
+        $angle = M_PI / 3;
+        for ($x = -5; $x <= 5; $x++) {
+          for ($y = -5; $y <= 5; $y++) {
+            $this->page->insert_block("county_location", array(
+              "X" => $x,
+              "Y" => $y,
+              "LEFT" => round($x * $scale + $y * $scale * cos($angle)) + 355,
+              "TOP" => round(-1 * $y * $scale * sin($angle)) + 355
+            ));
+          }
         }
-        
-        */
 
 
 
