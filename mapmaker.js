@@ -61,12 +61,14 @@ function (dojo, declare) {
                 // TODO: Setting up players boards if needed
             }
             
-            // TODO: Set up your game interface here, according to "gamedatas"
+            // Set up initial tiles.
             this.setupCountyTiles(gamedatas.counties);
-            console.log(gamedatas.edges);
             this.setupEdgeTiles(gamedatas.edges);
             
- 
+            // Set up various click handlers.
+            dojo.query(".edge").connect("onclick", this, "onPlayEdge");
+            dojo.query(".edge_location").connect("onclick", this, "onPlayEdge");
+
             // Setup game notifications to handle (see "setupNotifications" method below)
             this.setupNotifications();
 
@@ -120,27 +122,13 @@ function (dojo, declare) {
         setupEdgeTiles: function(edges) {
             for (var edge of edges) {
                 var id = `(${edge.x1},${edge.y1})_(${edge.x2},${edge.y2})`;
-                dojo.place(this.format_block("jstpl_edge", {
-                    id: id,
-                }), "edge_location_" + id);
-                dojo.style(
-                    "edge_" + id, "transform",
-                    `rotate(${this.getEdgeRotation(edge)})`);
-                dojo.style(
-                    "edge_" + id, "visibility",
-                    edge.isPlaced === "1" ? "visible" : "hidden"
-                );
+                dojo.addClass("edge_location_" + id, "isValidEdgeLocation");
+                if (edge.isPlaced === "1") {
+                    dojo.place(this.format_block("jstpl_edge", {
+                        id: id,
+                    }), "edge_location_" + id);
+                }
             }
-        },
-
-        getEdgeRotation: function(edge) {
-            if (parseInt(edge.y2) > parseInt(edge.y1)) {
-                return "30deg";
-            }
-            if (parseInt(edge.y2) < parseInt(edge.y1)) {
-                return "-30deg";
-            }
-            return "90deg";
         },
        
 
@@ -229,27 +217,53 @@ function (dojo, declare) {
         ///////////////////////////////////////////////////
         //// Utility methods
         
-        /*
-        
-            Here, you can defines some utility methods that you can use everywhere in your javascript
-            script.
-        
-        */
+        getEdgeRotation: function ($y1, $y2) {
+            if ($y2 > $y1) {
+                return "30deg";
+            }
+            if ($y2 < $y1) {
+                return "-30deg";
+            }
+            return "90deg";
+        },
 
 
         ///////////////////////////////////////////////////
         //// Player's action
         
-        /*
-        
-            Here, you are defining methods to handle player's action (ex: results of mouse click on 
-            game objects).
+        onPlayEdge: function(evt) {
+            console.log("onPlayEdge");
+
+            // Preventing default browser reaction.
+            dojo.stopEvent(evt);
+
+            // Check that this action is posible.
+            if (!this.checkAction("playEdge")) {
+                console.log("This action is not possible right now!");
+                return;
+            }
             
-            Most of the time, these methods:
-            _ check the action is possible at this game state.
-            _ make a call to the game server
-        
-        */
+            var id = evt.currentTarget.id;
+
+            // Check if this edge location is valid for this game.
+            // Note that this does not assert whether the edge can be played here (i.e. due to rules constraints). It merely asserts whether the edge connects two counties that are both in the game.
+            if (!dojo.hasClass(id, "isValidEdgeLocation")) {
+                console.log(`This is not a valid edge location: ${id}`);
+                return;
+            }
+
+            console.log(id);
+            // Id is of the form "edge_location_(x1,y1)_(x2,y2)".
+            let regexp = 
+                /edge_location_\((?<x1>.*),(?<y1>.*)\)_\((?<x2>.*),(?<y2>.*)\)/;
+            let match = regexp.exec(id);
+            this.ajaxcall("/mapmaker/mapmaker/playEdge.html", {
+                x1: match.groups.x1,
+                y1: match.groups.y1,
+                x2: match.groups.x2,
+                y2: match.groups.y2,
+            }, this, function(result) {});
+        },
         
         /* Example:
         
@@ -301,20 +315,30 @@ function (dojo, declare) {
         setupNotifications: function()
         {
             console.log( 'notifications subscriptions setup' );
-            
-            // TODO: here, associate your game notifications with local methods
-            
-            // Example 1: standard notification handling
-            // dojo.subscribe( 'cardPlayed', this, "notif_cardPlayed" );
-            
-            // Example 2: standard notification handling + tell the user interface to wait
-            //            during 3 seconds after calling the method in order to let the players
-            //            see what is happening in the game.
-            // dojo.subscribe( 'cardPlayed', this, "notif_cardPlayed" );
-            // this.notifqueue.setSynchronous( 'cardPlayed', 3000 );
-            // 
+
+            dojo.subscribe("playedEdge", this, "notif_playedEdge");
+            this.notifqueue.setSynchronous("playedEdge", 500);
         },  
         
+
+        notif_playedEdge: function(notif) {
+            console.log("notif_playedEdge");
+            console.log(notif);
+
+            var id = `(${notif.args.x1},${notif.args.y1})_(${notif.args.x2},${notif.args.y2})`;
+            dojo.place(this.format_block("jstpl_edge", {
+                id: id,
+            }), "edges");
+            this.placeOnObject(
+                "edge_" + id, "overall_player_board_" + notif.args.player_id);
+            this.slideToObject("edge_" + id, "edge_location_" + id).play();
+            dojo.style(
+                "edge_" + id, "transform",
+                `rotate(${this.getEdgeRotation(
+                    parseInt(notif.args.y1), parseInt(notif.args.y2))})`);
+        },
+
+
         // TODO: from this point and below, you can write your game notifications handling methods
         
         /*

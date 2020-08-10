@@ -60,13 +60,14 @@
     height: 40px;
     border-radius: 50%;
     background-image: url("img/tokens.png");
+    position: absolute;
 }
 
 .edge {
     width: 40px;
     height: 9px;
     background-image: url("img/border.png");
-    transform: rotate(0deg);
+    position: absolute;
 }
 
 .county_location {
@@ -78,12 +79,10 @@
 }
 
 .edge_location {
-    width: 9px;
+    width: 40px;
     height: 9px;
     /* background-color: blue; */
     position: absolute;
 }
-
-
 
 

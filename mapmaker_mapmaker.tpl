@@ -21,12 +21,10 @@
     <!-- BEGIN edge_location -->
         <div id="edge_location_({X1},{Y1})_({X2},{Y2})"
              class="edge_location"
-             style="left: {LEFT}px; top: {TOP}px;">
+             style="left: {LEFT}px; top: {TOP}px; transform: rotate({DEG}deg)">
         </div>
     <!-- END edge_location -->
 </div>
-
-<div id="counties"></div>
 <div id="edges"></div>
 
 

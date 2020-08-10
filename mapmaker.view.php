@@ -84,6 +84,7 @@
                 "Y2" => $y2,
                 "LEFT" => ($pixelLocation1[0] + $pixelLocation2[0]) / 2,
                 "TOP" => ($pixelLocation1[1] + $pixelLocation2[1]) / 2 + 15,
+                "DEG" => self::getEdgeRotation($y1, $y2),
               ));
             }
           }
@@ -97,6 +98,16 @@
       $angle = M_PI / 3;
       return array(round($x * $scale + $y * $scale * cos($angle)) + 355,
           round(-1 * $y * $scale * sin($angle)) + 355);
+    }
+
+    private function getEdgeRotation($y1, $y2) {
+      if ($y2 > $y1) {
+        return 30;
+      }
+      if ($y2 < $y1) {
+        return -30;
+      }
+      return 90;
     }
   }
   

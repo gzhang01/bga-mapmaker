@@ -126,7 +126,7 @@ class mapmaker extends Table
     }
 
     private function initEdges() {
-        $counties = self::getCounties();
+        $counties = self::getCountiesAsDoubleKeyCollection();
         $neighbors = array(array(0, 1), array(1, 0), array(1, -1));
 
         $sql = "INSERT INTO edges (county_1_x, county_1_y, county_2_x, county_2_y) VALUES ";
@@ -191,9 +191,7 @@ class mapmaker extends Table
         $result['counties'] = self::getObjectListFromDB(
             "SELECT coord_x x, coord_y y, county_player color, county_lean val FROM counties"
         );
-        $result['edges'] = self::getObjectListFromDB(
-            "SELECT county_1_x x1, county_1_y y1, county_2_x x2, county_2_y y2, is_placed isPlaced FROM edges"
-        );
+        $result['edges'] = self::getEdgesAsObjectList();
   
         return $result;
     }
@@ -223,7 +221,7 @@ class mapmaker extends Table
     /*
         Returns counties as a double associative array, where x is the first level and y is the second level.
     */
-    private function getCounties() {
+    private function getCountiesAsDoubleKeyCollection() {
         return self::getDoubleKeyCollectionFromDB(
             "SELECT coord_x, coord_y, county_player FROM counties"
         );
@@ -234,16 +232,60 @@ class mapmaker extends Table
         return isset($counties[$x]) and isset($counties[$x][$y]);
     }
 
+    // Returns edges as an object list.
+    private function getEdgesAsObjectList() {
+        return self::getObjectListFromDB(
+            "SELECT county_1_x x1, county_1_y y1, county_2_x x2, county_2_y y2, is_placed isPlaced FROM edges"
+        );
+    }
+
+    // Finds a given edge in the list of edges.
+    private function findEdge($edges, $x1, $y1, $x2, $y2) {
+        foreach ($edges as $edge) {
+            // var_dump($edge);
+            // die("ok");
+            if ($edge["x1"] == $x1 && $edge["y1"] == $y1 
+                    && $edge["x2"] == $x2 && $edge["y2"] == $y2) {
+                return $edge;
+            }
+        }
+        throw new BgaVisibleSystemException("Edge could not be found!");
+    }
+
 
 
 //////////////////////////////////////////////////////////////////////////////
 //////////// Player actions
 //////////// 
 
-    /*
-        Each time a player is doing some game action, one of the methods below is called.
-        (note: each method below must match an input method in mapmaker.action.php)
-    */
+    function playEdge($x1, $y1, $x2, $y2) {
+        self::checkAction("playEdge");
+        $edges = self::getEdgesAsObjectList();
+        $counties = self::getCountiesAsDoubleKeyCollection();
+        $edge = self::findEdge($edges, $x1, $y1, $x2, $y2);
+
+        // Check if edge has already been played.
+        if ($edge["isPlaced"]) {
+            throw new BgaUserException(
+                self::_("This edge has already been placed!"));
+        }
+
+        self::DbQuery(
+            "UPDATE edges SET is_placed='1' WHERE (county_1_x, county_1_y, county_2_x, county_2_y) = ($x1,$y1,$x2,$y2)"
+        );
+
+        self::notifyAllPlayers(
+            "playedEdge", clienttranslate('${player_name} plays an edge'), 
+            array(
+                "player_id" => self::getActivePlayerId(),
+                "player_name" => self::getActivePlayerName(),
+                "x1" => $x1,
+                "y1" => $y1,
+                "x2" => $x2,
+                "y2" => $y2,
+            ));
+        
+    }
 
     /*
     
@@ -320,6 +362,14 @@ class mapmaker extends Table
         $this->gamestate->nextState( 'some_gamestate_transition' );
     }    
     */
+
+    function stEvaluatePlayerMove() {
+
+    }
+
+    function stNextPlayer() {
+
+    }
 
 //////////////////////////////////////////////////////////////////////////////
 //////////// Zombie

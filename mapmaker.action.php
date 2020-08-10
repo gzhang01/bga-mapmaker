@@ -41,6 +41,15 @@
   	
   	// TODO: defines your action entry points there
 
+    public function playEdge() {
+      self::setAjaxMode();
+      $x1 = (int) self::getArg("x1", AT_int, true);
+      $y1 = (int) self::getArg("y1", AT_int, true);
+      $x2 = (int) self::getArg("x2", AT_int, true);
+      $y2 = (int) self::getArg("y2", AT_int, true);
+      $result = $this->game->playEdge($x1, $y1, $x2, $y2);
+      self::ajaxResponse();
+    }
 
     /*
     
