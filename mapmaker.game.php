@@ -88,6 +88,7 @@ class mapmaker extends Table
         //self::initStat( 'player', 'player_teststat1', 0 );  // Init a player statistics (for all players)
 
         self::initCounties();
+        self::initEdges();
        
 
         // Activate first player (which is in general a good idea :) )
@@ -124,6 +125,27 @@ class mapmaker extends Table
         self::DbQuery($sql);
     }
 
+    private function initEdges() {
+        $counties = self::getCounties();
+        $neighbors = array(array(0, 1), array(1, 0), array(1, -1));
+
+        $sql = "INSERT INTO edges (county_1_x, county_1_y, county_2_x, county_2_y) VALUES ";
+        $sqlValues = array();
+        foreach ($counties as $x => $data) {
+            foreach ($data as $y => $county) {
+                foreach ($neighbors as $neighbor) {
+                    $newX = $x + $neighbor[0];
+                    $newY = $y + $neighbor[1];
+                    if (self::isCountyPresent($counties, $newX, $newY)) {
+                        $sqlValues[] = "('$x','$y','$newX','$newY')";
+                    }
+                }
+            }
+        }
+        $sql .= implode($sqlValues, ',');
+        self::DbQuery($sql);
+    }
+    
     private function getCountyCoordinates($numPlayers) {
         $coords = array();
         for ($x = -3; $x <= 3; $x++) {
@@ -169,6 +191,9 @@ class mapmaker extends Table
         $result['counties'] = self::getObjectListFromDB(
             "SELECT coord_x x, coord_y y, county_player color, county_lean val FROM counties"
         );
+        $result['edges'] = self::getObjectListFromDB(
+            "SELECT county_1_x x1, county_1_y y1, county_2_x x2, county_2_y y2, is_placed isPlaced FROM edges"
+        );
   
         return $result;
     }
@@ -196,8 +221,18 @@ class mapmaker extends Table
 ////////////    
 
     /*
-        In this space, you can put any utility methods useful for your game logic
+        Returns counties as a double associative array, where x is the first level and y is the second level.
     */
+    private function getCounties() {
+        return self::getDoubleKeyCollectionFromDB(
+            "SELECT coord_x, coord_y, county_player FROM counties"
+        );
+    }
+
+    // Returns whether the county at $x, $y is present in $counties.
+    private function isCountyPresent($counties, $x, $y) {
+        return isset($counties[$x]) and isset($counties[$x][$y]);
+    }
 
 
 

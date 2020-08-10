@@ -62,7 +62,9 @@ function (dojo, declare) {
             }
             
             // TODO: Set up your game interface here, according to "gamedatas"
-            this.placeCountyTiles(gamedatas.counties);
+            this.setupCountyTiles(gamedatas.counties);
+            console.log(gamedatas.edges);
+            this.setupEdgeTiles(gamedatas.edges);
             
  
             // Setup game notifications to handle (see "setupNotifications" method below)
@@ -71,11 +73,11 @@ function (dojo, declare) {
             console.log( "Ending game setup" );
         },
 
-        placeCountyTiles: function(counties) {
+        setupCountyTiles: function(counties) {
             for (var county of counties) {
                 var id = county.x + "_" + county.y;
                 dojo.place(this.format_block("jstpl_county", {
-                    x_y: id,
+                    id: id,
                 }), "county_location_" + id);
                 dojo.style(
                     "county_" + id, "backgroundPosition", 
@@ -113,6 +115,32 @@ function (dojo, declare) {
                     break;
             }
             return `${x}px ${y}px`;
+        },
+
+        setupEdgeTiles: function(edges) {
+            for (var edge of edges) {
+                var id = `(${edge.x1},${edge.y1})_(${edge.x2},${edge.y2})`;
+                dojo.place(this.format_block("jstpl_edge", {
+                    id: id,
+                }), "edge_location_" + id);
+                dojo.style(
+                    "edge_" + id, "transform",
+                    `rotate(${this.getEdgeRotation(edge)})`);
+                dojo.style(
+                    "edge_" + id, "visibility",
+                    edge.isPlaced === "1" ? "visible" : "hidden"
+                );
+            }
+        },
+
+        getEdgeRotation: function(edge) {
+            if (parseInt(edge.y2) > parseInt(edge.y1)) {
+                return "30deg";
+            }
+            if (parseInt(edge.y2) < parseInt(edge.y1)) {
+                return "-30deg";
+            }
+            return "90deg";
         },
        
 

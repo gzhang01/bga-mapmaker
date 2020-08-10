@@ -41,3 +41,12 @@ CREATE TABLE IF NOT EXISTS `counties` (
     `district_player` varchar(6) DEFAULT NULL,
     PRIMARY KEY (`coord_x`, `coord_y`)
 ) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS `edges` (
+    `county_1_x` smallint(5) NOT NULL,
+    `county_1_y` smallint(5) NOT NULL,
+    `county_2_x` smallint(5) NOT NULL,
+    `county_2_y` smallint(5) NOT NULL,
+    `is_placed` boolean NOT NULL DEFAULT FALSE,
+    PRIMARY KEY (`county_1_x`, `county_1_y`, `county_2_x`, `county_2_y`)
+) ENGINE=InnoDB;
