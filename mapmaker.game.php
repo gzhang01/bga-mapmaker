@@ -256,6 +256,10 @@ class mapmaker extends Table
         throw new BgaVisibleSystemException("Edge could not be found!");
     }
 
+    private function getEdgesToPlay() {
+        return min(self::getGameStateValue("turn_number"), 4);
+    }
+
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -280,7 +284,8 @@ class mapmaker extends Table
         self::incGameStateValue("player_turns_taken", 1);
 
         self::notifyAllPlayers(
-            "playedEdge", clienttranslate('${player_name} plays an edge'), 
+            "playedEdge", 
+            clienttranslate('${player_name} plays an edge (${edgesPlayed}/${edgesToPlay})'), 
             array(
                 "player_id" => self::getActivePlayerId(),
                 "player_name" => self::getActivePlayerName(),
@@ -288,6 +293,8 @@ class mapmaker extends Table
                 "y1" => $y1,
                 "x2" => $x2,
                 "y2" => $y2,
+                "edgesPlayed" => self::getGameStateValue("player_turns_taken"),
+                "edgesToPlay" => self::getEdgesToPlay(),
             ));
         
         $this->gamestate->nextState("playEdge");
@@ -325,9 +332,9 @@ class mapmaker extends Table
 ////////////
 
     function argPlayerTurn() {
-        $turnNumber = self::getGameStateValue("turn_number");
+        $edgesToPlay = self::getEdgesToPlay();
         return array(
-            "numEdges" => min($turnNumber, 4),
+            "numEdges" => $edgesToPlay,
         );
     }
 
@@ -356,9 +363,8 @@ class mapmaker extends Table
 
     function stEvaluatePlayerMove() {
         // Determine whether player has played all edges.
-        $turnNumber = self::getGameStateValue("turn_number");
         $turnsTaken = self::getGameStateValue("player_turns_taken");
-        if ($turnsTaken < min($turnNumber, 4)) {
+        if ($turnsTaken < self::getEdgesToPlay()) {
             $this->gamestate->nextState("samePlayer");
         } else {
             $this->gamestate->nextState("nextPlayer");
