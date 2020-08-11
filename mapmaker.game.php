@@ -243,6 +243,7 @@ class mapmaker extends Table
         );
     }
 
+
     // Finds a given edge in the list of edges.
     private function findEdge($edges, $x1, $y1, $x2, $y2) {
         foreach ($edges as $edge) {
@@ -258,6 +259,78 @@ class mapmaker extends Table
 
     private function getEdgesToPlay() {
         return min(self::getGameStateValue("turn_number"), 4);
+    }
+
+    private function addNeighbor($neighbors, $x1, $y1, $x2, $y2) {
+        if (!isset($neighbors[$x1])) {
+            $neighbors[$x1] = array();
+        }
+        if (!isset($neighbors[$x1][$y1])) {
+            $neighbors[$x1][$y1] = array();
+        }
+        array_push($neighbors[$x1][$y1], array($x2, $y2));
+        return $neighbors;
+    }
+
+    // Processes list of edges and returns an associative array of neighbors.
+    // Input: Array<Edge>
+    // Output: Array<x, Array<y, Array<neighbors>>> 
+    //         where neighbors is Array<x, y>
+    private function getDistrictNeighbors($edges) {
+        $neighbors = array();
+        foreach ($edges as $edge) {
+            if ($edge["isPlaced"]) {
+                continue;
+            }
+            $neighbors = self::addNeighbor(
+                $neighbors, $edge["x1"], $edge["y1"], $edge["x2"], $edge["y2"]);
+            $neighbors = self::addNeighbor(
+                $neighbors, $edge["x2"], $edge["y2"], $edge["x1"], $edge["y1"]);
+        }
+        return $neighbors;
+    }
+
+    // Gets all reachables neighbors from node ($x, $y).
+    // Expects $neighbors as returned by self::getDistrictNeighbors().
+    private function getAllReachableNeighbors($neighbors, $node) {
+        $reachable = array();
+        $queue = array($node);
+        while (count($queue) != 0) {
+            $node = array_pop($queue);
+            array_push($reachable, $node);
+            if (!isset($neighbors[$node[0]]) 
+                    || !isset($neighbors[$node[0]][$node[1]])) {
+                continue;
+            }
+            foreach ($neighbors[$node[0]][$node[1]] as $next) {
+                if (!in_array($next, $reachable) && !in_array($next, $queue)) {
+                    array_push($queue, $next);
+                }
+            }
+        }
+        return $reachable;
+    }
+
+    private function createsInvalidDistrict($edge) {
+        // Pretend edge is placed.
+        $edges = self::getEdgesAsObjectList();
+        $index = array_search($edge, $edges);
+        if ($index === false) {
+            throw new BgaVisibleSystemException(
+                "Played edge wasn't found in list of edges!");
+        }
+        $edges[$index]["isPlaced"] = "1";
+
+        // Get neighbors for each county.
+        $neighbors = self::getDistrictNeighbors($edges);
+
+        // Get reachable neighbors from endpoints of edge.
+        $reachableNeighbors1 = self::getAllReachableNeighbors(
+            $neighbors, array($edge["x1"], $edge["y1"]));
+        $reachableNeighbors2 = self::getAllReachableNeighbors(
+            $neighbors, array($edge["x2"], $edge["y2"]));
+        return count($reachableNeighbors1) < 4 
+            || count($reachableNeighbors2) < 4;
     }
 
 
@@ -276,6 +349,11 @@ class mapmaker extends Table
         if ($edge["isPlaced"]) {
             throw new BgaUserException(
                 self::_("This edge has already been placed!"));
+        }
+
+        if (self::createsInvalidDistrict($edge)) {
+            throw new BgaUserException(
+                self::_("An edge cannot be placed here: it would create a district of size < 4."));
         }
 
         self::DbQuery(
