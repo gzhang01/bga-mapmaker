@@ -65,11 +65,12 @@ $machinestates = array(
 
     2 => array(
     	"name" => "playerTurn",
-		"description" => clienttranslate('${actplayer} must place edges.'),
-    	"descriptionmyturn" => clienttranslate('${you} must place edges.'),
-    	"type" => "activeplayer",
+		"description" => clienttranslate('${actplayer} must place ${numEdges} edge(s).'),
+    	"descriptionmyturn" => clienttranslate('${you} must place ${numEdges} edge(s).'),
+        "type" => "activeplayer",
+        "args" => "argPlayerTurn",
 		"possibleactions" => array("playEdge"),
-    	"transitions" => array("playEdge" => 2),
+    	"transitions" => array("playEdge" => 3),
     ),
 
     3 => array(
@@ -77,10 +78,18 @@ $machinestates = array(
         "description" => "",
         "type" => "game",
         "action" => "stEvaluatePlayerMove",
-        "transitions" => array("samePlayer" => 2, "nextPlayer" => 4, "endGame" => 99),
+        "transitions" => array("samePlayer" => 4, "nextPlayer" => 5, "endGame" => 99),
     ),
 
     4 => array(
+        "name" => "samePlayer",
+        "description" => "",
+        "type" => "game",
+        "action" => "stSamePlayer",
+        "transitions" => array("continueSamePlayer" => 2),
+    ),
+
+    5 => array(
         "name" => "nextPlayer",
         "description" => "",
         "type" => "game",

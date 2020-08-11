@@ -33,6 +33,8 @@ class mapmaker extends Table
         parent::__construct();
         
         self::initGameStateLabels( array( 
+            "turn_number" => 10,
+            "player_turns_taken" => 11,
             //    "my_first_global_variable" => 10,
             //    "my_second_global_variable" => 11,
             //      ...
@@ -87,6 +89,8 @@ class mapmaker extends Table
         //self::initStat( 'table', 'table_teststat1', 0 );    // Init a table statistics
         //self::initStat( 'player', 'player_teststat1', 0 );  // Init a player statistics (for all players)
 
+        self::setGameStateValue("turn_number", 1);
+        self::setGameStateValue("player_turns_taken", 0);
         self::initCounties();
         self::initEdges();
        
@@ -273,6 +277,7 @@ class mapmaker extends Table
         self::DbQuery(
             "UPDATE edges SET is_placed='1' WHERE (county_1_x, county_1_y, county_2_x, county_2_y) = ($x1,$y1,$x2,$y2)"
         );
+        self::incGameStateValue("player_turns_taken", 1);
 
         self::notifyAllPlayers(
             "playedEdge", clienttranslate('${player_name} plays an edge'), 
@@ -285,6 +290,7 @@ class mapmaker extends Table
                 "y2" => $y2,
             ));
         
+        $this->gamestate->nextState("playEdge");
     }
 
     /*
@@ -318,28 +324,13 @@ class mapmaker extends Table
 //////////// Game state arguments
 ////////////
 
-    /*
-        Here, you can create methods defined as "game state arguments" (see "args" property in states.inc.php).
-        These methods function is to return some additional information that is specific to the current
-        game state.
-    */
-
-    /*
-    
-    Example for game state "MyGameState":
-    
-    function argMyGameState()
-    {
-        // Get some values from the current game situation in database...
-    
-        // return values:
+    function argPlayerTurn() {
+        $turnNumber = self::getGameStateValue("turn_number");
         return array(
-            'variable1' => $value1,
-            'variable2' => $value2,
-            ...
+            "numEdges" => min($turnNumber, 4),
         );
-    }    
-    */
+    }
+
 
 //////////////////////////////////////////////////////////////////////////////
 //////////// Game state actions
@@ -364,11 +355,28 @@ class mapmaker extends Table
     */
 
     function stEvaluatePlayerMove() {
+        // Determine whether player has played all edges.
+        $turnNumber = self::getGameStateValue("turn_number");
+        $turnsTaken = self::getGameStateValue("player_turns_taken");
+        if ($turnsTaken < min($turnNumber, 4)) {
+            $this->gamestate->nextState("samePlayer");
+        } else {
+            $this->gamestate->nextState("nextPlayer");
+        }
+    }
 
+    function stSamePlayer() {
+        $this->gamestate->nextState("continueSamePlayer");
     }
 
     function stNextPlayer() {
+        // Activate next player.
+        $player_id = self::activeNextPlayer();
 
+        self::giveExtraTime($player_id);
+        self::setGameStateValue("player_turns_taken", 0);
+        self::incGameStateValue("turn_number", 1);
+        $this->gamestate->nextState("continueNextPlayer");
     }
 
 //////////////////////////////////////////////////////////////////////////////
