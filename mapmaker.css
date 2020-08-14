@@ -63,11 +63,8 @@
     position: absolute;
 }
 
-.edge {
-    width: 40px;
-    height: 9px;
-    background-image: url("img/border.png");
-    position: absolute;
+.is_placed_county {
+    opacity: 0.4;
 }
 
 .county_location {
@@ -78,6 +75,13 @@
     border-radius: 50%;
 }
 
+.edge {
+    width: 40px;
+    height: 9px;
+    background-image: url("img/border.png");
+    position: absolute;
+}
+
 .edge_location {
     width: 40px;
     height: 9px;
@@ -85,4 +89,12 @@
     position: absolute;
 }
 
+.district {
+    width: 60px;
+    height: 60px;
+    top: -10px;
+    left: -10px;
+    background-image: url("img/meeples.png");
+    position: absolute;
+}
 

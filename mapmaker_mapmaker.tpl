@@ -26,10 +26,12 @@
     <!-- END edge_location -->
 </div>
 <div id="edges"></div>
+<div id="districts"></div>
 
 
 <script type="text/javascript">
     var jstpl_county = '<div id="county_${id}" class="county"></div>';
+    var jstpl_district = '<div id="district_${id}" class="district"></div>';
     var jstpl_edge = '<div id="edge_${id}" class="edge"></div>';
 </script>  
 

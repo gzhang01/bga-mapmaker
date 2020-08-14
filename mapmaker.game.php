@@ -193,7 +193,7 @@ class mapmaker extends Table
   
         // TODO: Gather all information about current game situation (visible by player $current_player_id).
         $result['counties'] = self::getObjectListFromDB(
-            "SELECT coord_x x, coord_y y, county_player color, county_lean val FROM counties"
+            "SELECT coord_x x, coord_y y, county_player color, county_lean val, district_player winner, district_placement place FROM counties"
         );
         $result['edges'] = self::getEdgesAsObjectList();
   
@@ -227,7 +227,7 @@ class mapmaker extends Table
     */
     private function getCountiesAsDoubleKeyCollection() {
         return self::getDoubleKeyCollectionFromDB(
-            "SELECT coord_x, coord_y, county_player FROM counties"
+            "SELECT coord_x, coord_y, county_player, county_lean,  district_player FROM counties"
         );
     }
 
@@ -333,6 +333,81 @@ class mapmaker extends Table
             || count($reachableNeighbors2) < 4;
     }
 
+    private function isValidDistrict($counties) {
+        if (count($counties) < 4) {
+            return false;
+        }
+        if (count($counties) >= 4 && count($counties) <= 7) {
+            return true;
+        }
+
+        // TODO: Handle edge cases of >8 counties but still make a district.
+    }
+
+    private function createNewDistrict($newDistrict, $counties) {
+        // Tally the lean values for each county within the district.
+        $scores = array();
+        $countySqlValues = array();
+        foreach ($newDistrict as $districtCounty) {
+            $x = $districtCounty[0];
+            $y = $districtCounty[1];
+            $county = $counties[$x][$y];
+            if ($county["district_player"] !== NULL) {
+                throw new BgaVisibleSystemException(
+                    "District player for new district creation was not null!");
+            }
+            $id = $county["county_player"];
+            if (!isset($scores[$id])) {
+                $scores[$id] = 0;
+            }
+            $scores[$id] += $county["county_lean"];
+
+            // Start constructing values we'll need for sql query.
+            $countySqlValues[] = "('$x','$y')";
+        }
+
+        // Determine which player wins this district.
+        $winners = array_keys($scores, max($scores));
+        if (count($winners) > 1) {
+            // TODO: Handle case of more than one winner!
+        }
+        $winnerColor = $winners[0];
+        
+        // Update district_player for these counties.
+        $sql = "UPDATE counties SET district_player='$winnerColor' WHERE (coord_x, coord_y) IN (";
+        $sql .= implode($countySqlValues, ',') . ")";
+        self::DbQuery($sql);
+
+        // Set the index 2 county as the district placement county
+        // Note: there should always be at least 4 counties in a district, so this is safe.
+        $placeX = $newDistrict[2][0];
+        $placeY = $newDistrict[2][1];
+        self::DbQuery("UPDATE counties SET district_placement='1' WHERE (coord_x, coord_y)=('$placeX','$placeY')");
+
+        // Notify players of district formation.
+        $winnerInfo = 
+            self::getObjectFromDb("SELECT player_name, player_id FROM `player` WHERE player_color='$winnerColor'");
+        self::notifyAllPlayers(
+            "newDistrict", 
+            clienttranslate('${player_name} formed a new district, which was won by ${winner}.'),
+            array(
+                "player_name" => self::getActivePlayerName(),
+                "winner" => $winnerInfo["player_name"],
+                "winner_id" => $winnerInfo["player_id"],
+                "winner_color" => $winnerColor,
+                "position" => array($placeX, $placeY),
+                "counties" => $newDistrict,
+        ));
+
+        // Update player score for winner
+        self::DbQuery("UPDATE player SET player_score=player_score+1 WHERE player_color='$winnerColor'");
+        $newScores = self::getCollectionFromDb(
+            "SELECT player_id, player_score FROM player", true);
+        self::notifyAllPlayers("newScores", "", array(
+            "scores" => $newScores,
+        ));
+    }
+
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -360,10 +435,9 @@ class mapmaker extends Table
             "UPDATE edges SET is_placed='1' WHERE (county_1_x, county_1_y, county_2_x, county_2_y) = ($x1,$y1,$x2,$y2)"
         );
         self::incGameStateValue("player_turns_taken", 1);
-
         self::notifyAllPlayers(
             "playedEdge", 
-            clienttranslate('${player_name} plays an edge (${edgesPlayed}/${edgesToPlay})'), 
+            clienttranslate('${player_name} plays an edge (${edgesPlayed}/${edgesToPlay}).'), 
             array(
                 "player_id" => self::getActivePlayerId(),
                 "player_name" => self::getActivePlayerName(),
@@ -374,7 +448,26 @@ class mapmaker extends Table
                 "edgesPlayed" => self::getGameStateValue("player_turns_taken"),
                 "edgesToPlay" => self::getEdgesToPlay(),
             ));
-        
+
+        // Check for valid district formation
+        $neighbors = self::getDistrictNeighbors(self::getEdgesAsObjectList());
+        $reachableFrom1 = 
+            self::getAllReachableNeighbors($neighbors, array($x1, $y1));
+        $reachableFrom2 = 
+            self::getAllReachableNeighbors($neighbors, array($x2, $y2));
+        $remainingCounties = 
+            self::getUniqueValueFromDB("SELECT COUNT(*) FROM `counties` WHERE district_player IS NULL");
+        // If cells are cut off from each other, we want to check for valid districts and create them if necessary. Even if they are not cut off, if the reachable areas are less than total counties remaining, it's still possible that this edge placement means no other edges can be placed within this region. This too may make a county.
+        if (array_search(array($x2, $y2), $reachableFrom1) !== false 
+                || count($reachableFrom1) < $remainingCounties) {
+            if (self::isValidDistrict($reachableFrom1)) {
+                self::createNewDistrict($reachableFrom1, $counties);
+            }
+            if (self::isValidDistrict($reachableFrom2)) {
+                self::createNewDistrict($reachableFrom2, $counties);
+            }
+        }
+
         $this->gamestate->nextState("playEdge");
     }
 
@@ -420,24 +513,6 @@ class mapmaker extends Table
 //////////////////////////////////////////////////////////////////////////////
 //////////// Game state actions
 ////////////
-
-    /*
-        Here, you can create methods defined as "game state actions" (see "action" property in states.inc.php).
-        The action method of state X is called everytime the current game state is set to X.
-    */
-    
-    /*
-    
-    Example for game state "MyGameState":
-
-    function stMyGameState()
-    {
-        // Do some stuff ...
-        
-        // (very often) go to another gamestate
-        $this->gamestate->nextState( 'some_gamestate_transition' );
-    }    
-    */
 
     function stEvaluatePlayerMove() {
         // Determine whether player has played all edges.

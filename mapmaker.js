@@ -66,7 +66,6 @@ function (dojo, declare) {
             this.setupEdgeTiles(gamedatas.edges);
             
             // Set up various click handlers.
-            dojo.query(".edge").connect("onclick", this, "onPlayEdge");
             dojo.query(".edge_location").connect("onclick", this, "onPlayEdge");
 
             // Setup game notifications to handle (see "setupNotifications" method below)
@@ -85,6 +84,13 @@ function (dojo, declare) {
                     "county_" + id, "backgroundPosition", 
                     this.getCountyBackgroundPosition(
                         county.color, parseInt(county.val)));
+                if (county.winner !== null) {
+                    dojo.addClass("county_" + id, "is_placed_county");
+                }
+                if (county.place === '1') {
+                    this.placeDistrictMeeple(
+                        id, this.getActivePlayerId(), county.winner);
+                }
             }
         },
 
@@ -117,6 +123,21 @@ function (dojo, declare) {
                     break;
             }
             return `${x}px ${y}px`;
+        },
+
+        getDistrictBackgroundPosition: function(winner) {
+            switch (winner) {
+                case this.yellowPlayerColor:
+                    return `-15px -75px`;
+                case this.greenPlayerColor:
+                    return `-15px -12px`;
+                case this.bluePlayerColor:
+                    return `-85px -63px`;
+                case this.redPlayerColor:
+                    return `-78px -3px`;
+                default:
+                    return;
+            }
         },
 
         setupEdgeTiles: function(edges) {
@@ -217,16 +238,32 @@ function (dojo, declare) {
         ///////////////////////////////////////////////////
         //// Utility methods
         
-        getEdgeRotation: function ($y1, $y2) {
-            if ($y2 > $y1) {
+        getEdgeRotation: function (y1, y2) {
+            if (y2 > y1) {
                 return "30deg";
             }
-            if ($y2 < $y1) {
+            if (y2 < y1) {
                 return "-30deg";
             }
             return "90deg";
         },
 
+        placeDistrictMeeple: function(id, playerId, winnerColor) {
+            dojo.place(this.format_block("jstpl_district", {
+                id: id
+            }), "districts");
+            this.placeOnObject(
+                "district_" + id,
+                "overall_player_board_" + playerId);
+            this.slideToObject("district_" + id, "county_location_" + id)
+                .play();
+
+            // Set proper background position to render meeple.
+            dojo.style(
+                "district_" + id, "backgroundPosition",
+                this.getDistrictBackgroundPosition(winnerColor)
+            );
+        },
 
         ///////////////////////////////////////////////////
         //// Player's action
@@ -318,6 +355,10 @@ function (dojo, declare) {
 
             dojo.subscribe("playedEdge", this, "notif_playedEdge");
             this.notifqueue.setSynchronous("playedEdge", 500);
+            dojo.subscribe("newDistrict", this, "notif_newDistrict");
+            this.notifqueue.setSynchronous("newDistrict", 500);
+            dojo.subscribe("newScores", this, "notif_newScores");
+            this.notifqueue.setSynchronous("newScores", 500);
         },  
         
 
@@ -338,22 +379,24 @@ function (dojo, declare) {
                     parseInt(notif.args.y1), parseInt(notif.args.y2))})`);
         },
 
+        notif_newDistrict: function(notif) {
+            // Mark all counties as played.
+            for (var county of notif.args.counties) {
+                var id = county[0] + "_" + county[1];
+                dojo.addClass("county_" + id, "is_placed_county");
+            }
 
-        // TODO: from this point and below, you can write your game notifications handling methods
-        
-        /*
-        Example:
-        
-        notif_cardPlayed: function( notif )
-        {
-            console.log( 'notif_cardPlayed' );
-            console.log( notif );
-            
-            // Note: notif.args contains the arguments specified during you "notifyAllPlayers" / "notifyPlayer" PHP call
-            
-            // TODO: play the card in the user interface.
-        },    
-        
-        */
+            // Create and move district meeple.
+            var position = notif.args.position;
+            var id = position[0] + "_" + position[1];
+            this.placeDistrictMeeple(
+                id, notif.args.winner_id, notif.args.winner_color);
+        },
+
+        notif_newScores: function(notif) {
+            for (var player_id in notif.args.scores) {
+                this.scoreCtrl[player_id].toValue(notif.args.scores[player_id]);
+            }
+        },
    });             
 });

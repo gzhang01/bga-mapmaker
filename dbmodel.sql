@@ -39,6 +39,7 @@ CREATE TABLE IF NOT EXISTS `counties` (
     `county_player` varchar(6) NOT NULL,
     `county_lean` smallint(5) unsigned NOT NULL,
     `district_player` varchar(6) DEFAULT NULL,
+    `district_placement` boolean NOT NULL DEFAULT FALSE,
     PRIMARY KEY (`coord_x`, `coord_y`)
 ) ENGINE=InnoDB;
 
