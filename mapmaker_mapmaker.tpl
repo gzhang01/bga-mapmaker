@@ -31,8 +31,10 @@
 
 <script type="text/javascript">
     var jstpl_county = '<div id="county_${id}" class="county"></div>';
-    var jstpl_district = '<div id="district_${id}" class="district"></div>';
+    var jstpl_district_meeple = 
+        '<div id="district_meeple_${id}" class="district_meeple"></div>';
     var jstpl_edge = '<div id="edge_${id}" class="edge"></div>';
+    var jstpl_overlay = '<div id="overlay_${id}" class="overlay"></div>';
 </script>  
 
 {OVERALL_GAME_FOOTER}

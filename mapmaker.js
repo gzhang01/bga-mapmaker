@@ -62,7 +62,8 @@ function (dojo, declare) {
             }
             
             // Set up initial tiles.
-            this.setupCountyTiles(gamedatas.counties, gamedatas.districts);
+            this.setupCountyAndOverlayTiles(
+                gamedatas.counties, gamedatas.districts);
             this.setupEdgeTiles(gamedatas.edges);
             
             // Set up various click handlers.
@@ -74,8 +75,9 @@ function (dojo, declare) {
             console.log( "Ending game setup" );
         },
 
-        setupCountyTiles: function(counties, districts) {
+        setupCountyAndOverlayTiles: function(counties, districts) {
             for (var county of counties) {
+                // Add county tile.
                 var id = county.x + "_" + county.y;
                 dojo.place(this.format_block("jstpl_county", {
                     id: id,
@@ -84,9 +86,22 @@ function (dojo, declare) {
                     "county_" + id, "backgroundPosition", 
                     this.getCountyBackgroundPosition(
                         county.color, parseInt(county.val)));
+                
+                // Add overlay tile.
+                dojo.place(this.format_block("jstpl_overlay", {
+                    id: id,
+                }), "county_location_" + id);
+
+                // If county is part of district, add the overlay.
                 if (county.district_id !== null) {
-                    dojo.addClass("county_" + id, "is_placed_county");
+                    dojo.addClass("overlay_" + id, "overlay_active");
+                    dojo.style(
+                        "overlay_" + id, "backgroundPosition",
+                        this.getOverlayBackgroundPosition(
+                            districts[county.district_id]));
                 }
+
+                // Add meeple.
                 if (county.place === '1') {
                     this.placeDistrictMeeple(
                         id, 
@@ -127,16 +142,32 @@ function (dojo, declare) {
             return `${x}px ${y}px`;
         },
 
-        getDistrictBackgroundPosition: function(winner) {
-            switch (winner) {
+        getDistrictBackgroundPosition: function(color) {
+            switch (color) {
                 case this.yellowPlayerColor:
-                    return `-15px -75px`;
+                    return "-15px -75px";
                 case this.greenPlayerColor:
-                    return `-15px -12px`;
+                    return "-15px -12px";
                 case this.bluePlayerColor:
-                    return `-85px -63px`;
+                    return "-85px -63px";
                 case this.redPlayerColor:
-                    return `-78px -3px`;
+                    return "-78px -3px";
+                default:
+                    return;
+            }
+        },
+
+        getOverlayBackgroundPosition: function(color) {
+            console.log(color);
+            switch (color) {
+                case this.yellowPlayerColor:
+                    return "-80px 0px";
+                case this.greenPlayerColor:
+                    return "-160px 0px";
+                case this.bluePlayerColor:
+                    return "-240px 0px";
+                case this.redPlayerColor:
+                    return "0px 0px";
                 default:
                     return;
             }
@@ -251,18 +282,18 @@ function (dojo, declare) {
         },
 
         placeDistrictMeeple: function(id, playerId, winnerColor) {
-            dojo.place(this.format_block("jstpl_district", {
+            dojo.place(this.format_block("jstpl_district_meeple", {
                 id: id
             }), "districts");
             this.placeOnObject(
-                "district_" + id,
+                "district_meeple_" + id,
                 "overall_player_board_" + playerId);
-            this.slideToObject("district_" + id, "county_location_" + id)
+            this.slideToObject("district_meeple_" + id, "county_location_" + id)
                 .play();
 
             // Set proper background position to render meeple.
             dojo.style(
-                "district_" + id, "backgroundPosition",
+                "district_meeple_" + id, "backgroundPosition",
                 this.getDistrictBackgroundPosition(winnerColor)
             );
         },
@@ -385,7 +416,11 @@ function (dojo, declare) {
             // Mark all counties as played.
             for (var county of notif.args.counties) {
                 var id = county[0] + "_" + county[1];
-                dojo.addClass("county_" + id, "is_placed_county");
+                dojo.addClass("overlay_" + id, "overlay_active");
+                dojo.style(
+                    "overlay_" + id, "backgroundPosition",
+                    this.getOverlayBackgroundPosition(notif.args.winner_color));
+                
             }
 
             // Create and move district meeple.

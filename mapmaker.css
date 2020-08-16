@@ -63,10 +63,6 @@
     position: absolute;
 }
 
-.is_placed_county {
-    opacity: 0.4;
-}
-
 .county_location {
     width: 40px;
     height: 40px;
@@ -89,7 +85,7 @@
     position: absolute;
 }
 
-.district {
+.district_meeple {
     width: 60px;
     height: 60px;
     top: -10px;
@@ -98,3 +94,17 @@
     position: absolute;
 }
 
+.overlay {
+    width: 80px;
+    height: 80px;
+    top: -20px;
+    left: -14px;
+    opacity: 0;
+    background-image: url("img/overlay.png");
+    background-repeat: no-repeat;
+    position: absolute;
+}
+
+.overlay_active {
+    opacity: 0.75;
+}
