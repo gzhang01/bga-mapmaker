@@ -312,9 +312,8 @@ class mapmaker extends Table
         return $reachable;
     }
 
-    private function createsInvalidDistrict($edge) {
+    private function createsInvalidDistrict($edge, $edges) {
         // Pretend edge is placed.
-        $edges = self::getEdgesAsObjectList();
         $index = array_search($edge, $edges);
         if ($index === false) {
             throw new BgaVisibleSystemException(
@@ -334,7 +333,7 @@ class mapmaker extends Table
             || count($reachableNeighbors2) < 4;
     }
 
-    private function isValidDistrict($counties) {
+    private function isValidDistrict($counties, $edges) {
         if (count($counties) < 4) {
             return false;
         }
@@ -342,7 +341,59 @@ class mapmaker extends Table
             return true;
         }
 
-        // TODO: Handle edge cases of >8 counties but still make a district.
+        // Get the edges within a district.
+        $edgesWithinDistrict = array();
+        foreach ($edges as $edge) {
+            if ($edge["isPlaced"]) {
+                continue;
+            }
+            foreach ($counties as $county) {
+                if (($edge["x1"] == $county[0] && $edge["y1"] == $county[1]) ||
+                    ($edge["x2"] == $county[0] && $edge["y2"] == $county[1])) {
+                    $edgesWithinDistrict[] = $edge;
+                    break;
+                }
+            }
+        }
+
+        // Check whether any valid edges can be placed within blocks.
+        // If no edge placements are valid, then this is a district.
+        foreach ($edgesWithinDistrict as $edge) {
+            // If this edge placement results in invalid districts, we cannot place this edge. Continue on to other edges.
+            if (self::createsInvalidDistrict($edge, $edgesWithinDistrict)) {
+                continue;
+            }
+            // Three section arm has two counties with two neighbors and one county with three neighbors. Thus one endpoint of this border must have two neighbors. Get that one.
+            $counties = array(array($edge["x1"], $edge["y1"]), 
+                                    array($edge["x2"], $edge["y2"]));
+            $neighbors = self::getDistrictNeighbors($edgesWithinDistrict);
+            $twoNeighborCounty = array();
+            if (self::getNeighborCount($counties[0], $neighbors) == 2) {
+                $twoNeighborCounty = $counties[0];
+            } else if (self::getNeighborCount($counties[1], $neighbors) == 2) {
+                $twoNeighborCounty = $counties[1];
+            } else {
+                return false;
+            }
+            
+            // Expect one neighbor of this county to have 2 neighbors. Other to have 3. If this is true, then this is a three-prong arm and we continue searching.
+            $neighborsOf2N = 
+                $neighbors[$twoNeighborCounty[0]][$twoNeighborCounty[1]];
+            if ((self::getNeighborCount($neighborsOf2N[0], $neighbors) == 2 &&  
+                 self::getNeighborCount($neighborsOf2N[1], $neighbors) == 3) || 
+                (self::getNeighborCount($neighborsOf2N[0], $neighbors) == 3 && 
+                 self::getNeighborCount($neighborsOf2N[1], $neighbors) == 2)) {
+                continue;
+            }
+            return false;
+        }
+        return true;
+    }
+
+    // $county array([0] -> x, [1] -> y).
+    // $neighbors output of self::getDistrictNeighbors().
+    private function getNeighborCount($county, $neighbors) {
+        return count($neighbors[$county[0]][$county[1]]);
     }
 
     private function createNewDistrict($newDistrict, $counties) {
@@ -429,7 +480,7 @@ class mapmaker extends Table
                 self::_("This edge has already been placed!"));
         }
 
-        if (self::createsInvalidDistrict($edge)) {
+        if (self::createsInvalidDistrict($edge, $edges)) {
             throw new BgaUserException(
                 self::_("An edge cannot be placed here: it would create a district of size < 4."));
         }
@@ -453,7 +504,9 @@ class mapmaker extends Table
             ));
 
         // Check for valid district formation
-        $neighbors = self::getDistrictNeighbors(self::getEdgesAsObjectList());
+        // Requery $edges since we've changed placement.
+        $edges = self::getEdgesAsObjectList();
+        $neighbors = self::getDistrictNeighbors($edges);
         $reachableFrom1 = 
             self::getAllReachableNeighbors($neighbors, array($x1, $y1));
         $reachableFrom2 = 
@@ -461,12 +514,12 @@ class mapmaker extends Table
         $remainingCounties = 
             self::getUniqueValueFromDB("SELECT COUNT(*) FROM `counties` WHERE district IS NULL");
         // If cells are cut off from each other, we want to check for valid districts and create them if necessary. Even if they are not cut off, if the reachable areas are less than total counties remaining, it's still possible that this edge placement means no other edges can be placed within this region. This too may make a county.
-        if (array_search(array($x2, $y2), $reachableFrom1) !== false 
+        if (array_search(array($x2, $y2), $reachableFrom1) === false 
                 || count($reachableFrom1) < $remainingCounties) {
-            if (self::isValidDistrict($reachableFrom1)) {
+            if (self::isValidDistrict($reachableFrom1, $edges)) {
                 self::createNewDistrict($reachableFrom1, $counties);
             }
-            if (self::isValidDistrict($reachableFrom2)) {
+            if (self::isValidDistrict($reachableFrom2, $edges)) {
                 self::createNewDistrict($reachableFrom2, $counties);
             }
         }
