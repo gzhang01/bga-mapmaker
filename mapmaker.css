@@ -98,7 +98,7 @@
     width: 80px;
     height: 80px;
     top: -20px;
-    left: -14px;
+    left: -20px;
     opacity: 0;
     background-image: url("img/overlay.png");
     background-repeat: no-repeat;
@@ -107,4 +107,9 @@
 
 .overlay_active {
     opacity: 0.75;
+}
+
+.overlay_choose_winner {
+    opacity: 0.6;
+    background-position: -320px 0px;
 }

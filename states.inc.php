@@ -49,6 +49,16 @@
 
 //    !! It is not a good idea to modify this file when a game is running !!
 
+// Define constants for state ids.
+if (!defined('STATE_END_GAME')) {
+    define("STATE_PLAYER_TURN", 2);
+    define("STATE_EVALUATE_PLAYER_MOVE", 3);
+    define("STATE_SAME_PLAYER", 4);
+    define("STATE_NEXT_PLAYER", 5);
+    define("STATE_DISTRICT_TIE_BREAK", 6);
+    define("STATE_END_GAME", 99);
+}
+
  
 $machinestates = array(
 
@@ -58,48 +68,60 @@ $machinestates = array(
         "description" => "",
         "type" => "manager",
         "action" => "stGameSetup",
-        "transitions" => array( "" => 2 )
+        "transitions" => array( "" => STATE_PLAYER_TURN )
     ),
-    
-    // Note: ID=2 => your first state
 
-    2 => array(
+    STATE_PLAYER_TURN => array(
     	"name" => "playerTurn",
 		"description" => clienttranslate('${actplayer} must place ${numEdges} edge(s).'),
     	"descriptionmyturn" => clienttranslate('${you} must place ${numEdges} edge(s).'),
         "type" => "activeplayer",
         "args" => "argPlayerTurn",
 		"possibleactions" => array("playEdge"),
-    	"transitions" => array("playEdge" => 3),
+    	"transitions" => array("playEdge" => STATE_EVALUATE_PLAYER_MOVE),
     ),
 
-    3 => array(
+    STATE_EVALUATE_PLAYER_MOVE => array(
         "name" => "evaluatePlayerMove",
         "description" => "",
         "type" => "game",
         "action" => "stEvaluatePlayerMove",
-        "transitions" => array("samePlayer" => 4, "nextPlayer" => 5, "endGame" => 99),
+        "transitions" => array(
+            "districtTieBreak" => STATE_DISTRICT_TIE_BREAK,
+            "samePlayer" => STATE_SAME_PLAYER, 
+            "nextPlayer" => STATE_NEXT_PLAYER, 
+            "endGame" => STATE_END_GAME),
     ),
 
-    4 => array(
+    STATE_SAME_PLAYER => array(
         "name" => "samePlayer",
         "description" => "",
         "type" => "game",
         "action" => "stSamePlayer",
-        "transitions" => array("continueSamePlayer" => 2),
+        "transitions" => array("continueSamePlayer" => STATE_PLAYER_TURN),
     ),
 
-    5 => array(
+    STATE_NEXT_PLAYER => array(
         "name" => "nextPlayer",
         "description" => "",
         "type" => "game",
         "action" => "stNextPlayer",
-        "transitions" => array("continueNextPlayer" => 2),
-    ),   
+        "transitions" => array("continueNextPlayer" => STATE_PLAYER_TURN),
+    ),
+
+    STATE_DISTRICT_TIE_BREAK => array(
+        "name" => "districtTieBreak",
+        "description" => clienttranslate('${actplayer} must select district winner.'),
+    	"descriptionmyturn" => clienttranslate('${you} must select district winner.'),
+        "type" => "activeplayer",
+        "args" => "argDistrictTieBreak",
+		"possibleactions" => array("selectDistrictWinner"),
+    	"transitions" => array("selectDistrictWinner" => STATE_EVALUATE_PLAYER_MOVE),
+    ),
    
     // Final state.
     // Please do not modify (and do not overload action/args methods).
-    99 => array(
+    STATE_END_GAME => array(
         "name" => "gameEnd",
         "description" => clienttranslate("End of game"),
         "type" => "manager",

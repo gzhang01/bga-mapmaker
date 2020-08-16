@@ -244,6 +244,12 @@ class mapmaker extends Table
         );
     }
 
+    // Returns list of unclaimed districts.
+    private function getUnclaimedDistricts() {
+        return self::getObjectListFromDB(
+            "SELECT id, possible_winners FROM districts 
+             WHERE player_color IS NULL");
+    }
 
     // Finds a given edge in the list of edges.
     private function findEdge($edges, $x1, $y1, $x2, $y2) {
@@ -293,6 +299,7 @@ class mapmaker extends Table
 
     // Gets all reachables neighbors from node ($x, $y).
     // Expects $neighbors as returned by self::getDistrictNeighbors().
+    // Returns array(array([0] => x, [1] => y))
     private function getAllReachableNeighbors($neighbors, $node) {
         $reachable = array();
         $queue = array($node);
@@ -396,6 +403,45 @@ class mapmaker extends Table
         return count($neighbors[$county[0]][$county[1]]);
     }
 
+    private function setDistrictForCounties($districtId, $district, $counties) {
+        // Set district for counties.
+        $sql = "UPDATE counties SET district='$districtId' WHERE (coord_x, coord_y) IN (";
+        $sql .= implode($counties, ',') . ")";
+        self::DbQuery($sql);
+
+        // Set the index 2 county as the district placement county
+        // Note: there should always be at least 4 counties in a district, so this is safe.
+        $placeX = $district[2][0];
+        $placeY = $district[2][1];
+        self::DbQuery("UPDATE counties SET district_placement='1' WHERE (coord_x, coord_y)=('$placeX','$placeY')");
+    }
+
+    private function notifyDistrictCreation($districtId, $winnerColor) {
+        // Notify players of district formation.
+        $winnerInfo = 
+            self::getObjectFromDb("SELECT player_name, player_id FROM `player` WHERE player_color='$winnerColor'");
+        $district = self::getObjectListFromDB(
+            "SELECT coord_x x, coord_y y, district_placement place FROM counties WHERE district='$districtId'");
+        self::notifyAllPlayers(
+            "newDistrict", 
+            clienttranslate('${player_name} formed a new district, which was won by ${winner}.'),
+            array(
+                "player_name" => self::getActivePlayerName(),
+                "winner" => $winnerInfo["player_name"],
+                "winner_id" => $winnerInfo["player_id"],
+                "winner_color" => $winnerColor,
+                "counties" => $district,
+        ));
+
+        // Update player score for winner
+        self::DbQuery("UPDATE player SET player_score=player_score+1 WHERE player_color='$winnerColor'");
+        $newScores = self::getCollectionFromDb(
+            "SELECT player_id, player_score FROM player", true);
+        self::notifyAllPlayers("newScores", "", array(
+            "scores" => $newScores,
+        ));
+    }
+
     private function createNewDistrict($newDistrict, $counties) {
         // Tally the lean values for each county within the district.
         $scores = array();
@@ -420,46 +466,24 @@ class mapmaker extends Table
 
         // Determine which player wins this district.
         $winners = array_keys($scores, max($scores));
-        if (count($winners) > 1) {
-            // TODO: Handle case of more than one winner!
-        }
-        $winnerColor = $winners[0];
         
         // Create a district for these counties.
-        self::DbQuery("INSERT INTO districts (player_color) VALUES ('$winnerColor')");
-        $districtId = self::getUniqueValueFromDB("SELECT MAX(id) FROM districts");
-        $sql = "UPDATE counties SET district='$districtId' WHERE (coord_x, coord_y) IN (";
-        $sql .= implode($countySqlValues, ',') . ")";
-        self::DbQuery($sql);
-
-        // Set the index 2 county as the district placement county
-        // Note: there should always be at least 4 counties in a district, so this is safe.
-        $placeX = $newDistrict[2][0];
-        $placeY = $newDistrict[2][1];
-        self::DbQuery("UPDATE counties SET district_placement='1' WHERE (coord_x, coord_y)=('$placeX','$placeY')");
-
-        // Notify players of district formation.
-        $winnerInfo = 
-            self::getObjectFromDb("SELECT player_name, player_id FROM `player` WHERE player_color='$winnerColor'");
-        self::notifyAllPlayers(
-            "newDistrict", 
-            clienttranslate('${player_name} formed a new district, which was won by ${winner}.'),
-            array(
-                "player_name" => self::getActivePlayerName(),
-                "winner" => $winnerInfo["player_name"],
-                "winner_id" => $winnerInfo["player_id"],
-                "winner_color" => $winnerColor,
-                "position" => array($placeX, $placeY),
-                "counties" => $newDistrict,
-        ));
-
-        // Update player score for winner
-        self::DbQuery("UPDATE player SET player_score=player_score+1 WHERE player_color='$winnerColor'");
-        $newScores = self::getCollectionFromDb(
-            "SELECT player_id, player_score FROM player", true);
-        self::notifyAllPlayers("newScores", "", array(
-            "scores" => $newScores,
-        ));
+        if (count($winners) > 1) {
+            $possibleWinners = implode(",", $winners);
+            self::DbQuery(
+                "INSERT INTO districts (possible_winners) 
+                 VALUES ('$possibleWinners')");
+            self::setDistrictForCounties(
+                self::DbGetLastId(), $newDistrict, $countySqlValues);
+            return;
+        }
+        $winnerColor = $winners[0];
+        self::DbQuery(
+            "INSERT INTO districts (player_color) VALUES ('$winnerColor')");
+        $districtId = self::DbGetLastId();
+        self::setDistrictForCounties(
+            $districtId, $newDistrict, $countySqlValues);
+        self::notifyDistrictCreation($districtId, $winnerColor);
     }
 
 
@@ -527,6 +551,14 @@ class mapmaker extends Table
         $this->gamestate->nextState("playEdge");
     }
 
+    function selectDistrictWinner($id, $color) {
+        self::checkAction("selectDistrictWinner");
+        self::DbQuery(
+            "UPDATE districts SET player_color='$color' WHERE id='$id'");
+        self::notifyDistrictCreation($id, $color);
+        $this->gamestate->nextState("selectDistrictWinner");
+    }
+
     /*
     
     Example:
@@ -565,12 +597,38 @@ class mapmaker extends Table
         );
     }
 
+    function argDistrictTieBreak() {
+        $unclaimedDistricts = self::getUnclaimedDistricts();
+        if (count($unclaimedDistricts) == 0) {
+            throw new BgaVisibleSystemException(
+                "State error: no districts available for tie break.");
+        }
+        $districtId = $unclaimedDistricts[0]["id"];
+        $counties = self::GetObjectListFromDb(
+            "SELECT coord_x x, coord_y y FROM counties 
+             WHERE district='$districtId'");
+        $possibleWinners = 
+            explode(",", $unclaimedDistricts[0]["possible_winners"]);
+        return array(
+            "possibleWinners" => $possibleWinners,
+            "counties" => $counties,
+            "districtId" => $districtId,
+        );
+    }
+
 
 //////////////////////////////////////////////////////////////////////////////
 //////////// Game state actions
 ////////////
 
     function stEvaluatePlayerMove() {
+        // Determine if there's a district tie break decision to make.
+        $unclaimedDistricts = self::getUnclaimedDistricts();
+        if (count($unclaimedDistricts) > 0) {
+            $this->gamestate->nextState("districtTieBreak");
+            return;
+        }
+
         // Determine whether player has played all edges.
         $turnsTaken = self::getGameStateValue("player_turns_taken");
         if ($turnsTaken < self::getEdgesToPlay()) {

@@ -92,21 +92,10 @@ function (dojo, declare) {
                     id: id,
                 }), "county_location_" + id);
 
-                // If county is part of district, add the overlay.
-                if (county.district_id !== null) {
-                    dojo.addClass("overlay_" + id, "overlay_active");
-                    dojo.style(
-                        "overlay_" + id, "backgroundPosition",
-                        this.getOverlayBackgroundPosition(
-                            districts[county.district_id]));
-                }
-
-                // Add meeple.
-                if (county.place === '1') {
-                    this.placeDistrictMeeple(
-                        id, 
-                        this.getActivePlayerId(), 
-                        districts[county.district_id]);
+                if (county.district_id !== null 
+                        && districts[county.district_id] !== null) {
+                    this.renderDistrict(
+                        county, districts[county.district_id]);
                 }
             }
         },
@@ -158,7 +147,6 @@ function (dojo, declare) {
         },
 
         getOverlayBackgroundPosition: function(color) {
-            console.log(color);
             switch (color) {
                 case this.yellowPlayerColor:
                     return "-80px 0px";
@@ -196,22 +184,15 @@ function (dojo, declare) {
         {
             console.log( 'Entering state: '+stateName );
             
-            switch( stateName )
-            {
-            
-            /* Example:
-            
-            case 'myGameState':
-            
-                // Show some HTML block at this game state
-                dojo.style( 'my_html_block_id', 'display', 'block' );
-                
-                break;
-           */
-           
-           
-            case 'dummmy':
-                break;
+            switch (stateName) {
+                case "districtTieBreak":
+                    for (var county of args.args.counties) {
+                        var id = county["x"] + "_" + county["y"];
+                        dojo.addClass("overlay_" + id, "overlay_choose_winner");
+                    }
+                    break;
+                default:
+                    break;
             }
         },
 
@@ -222,48 +203,37 @@ function (dojo, declare) {
         {
             console.log( 'Leaving state: '+stateName );
             
-            switch( stateName )
-            {
-            
-            /* Example:
-            
-            case 'myGameState':
-            
-                // Hide the HTML block we are displaying only during this game state
-                dojo.style( 'my_html_block_id', 'display', 'none' );
-                
-                break;
-           */
-           
-           
-            case 'dummmy':
-                break;
-            }               
+            switch (stateName) {
+                case "districtTieBreak":
+                    dojo.query(".overlay_choose_winner")
+                        .removeClass(".overlay_choose_winner");
+                default:
+                    break;
+            }
+             
         }, 
 
-        // onUpdateActionButtons: in this method you can manage "action buttons" that are displayed in the
-        //                        action status bar (ie: the HTML links in the status bar).
-        //        
+        // onUpdateActionButtons: in this method you can manage "action buttons" that are displayed in the action status bar (ie: the HTML links in the status bar).
         onUpdateActionButtons: function( stateName, args )
         {
             console.log( 'onUpdateActionButtons: '+stateName );
                       
-            if( this.isCurrentPlayerActive() )
-            {            
-                switch( stateName )
-                {
-/*               
-                 Example:
- 
-                 case 'myGameState':
-                    
-                    // Add 3 action buttons in the action status bar:
-                    
-                    this.addActionButton( 'button_1_id', _('Button 1 label'), 'onMyMethodToCall1' ); 
-                    this.addActionButton( 'button_2_id', _('Button 2 label'), 'onMyMethodToCall2' ); 
-                    this.addActionButton( 'button_3_id', _('Button 3 label'), 'onMyMethodToCall3' ); 
-                    break;
-*/
+            if (this.isCurrentPlayerActive()) {
+                switch(stateName) {
+                    case "districtTieBreak":
+                        for (var color of args.possibleWinners) {
+                            var id = "district_tiebreak_"
+                                        + args.districtId
+                                        + "_"
+                                        + color;
+                            this.addActionButton(
+                                id,
+                                _(this.getUserReadablePlayerColor(color)),
+                                "onChooseDistrictTieBreak");
+                        }
+                        break;
+                    default:
+                        break;
                 }
             }
         },        
@@ -281,6 +251,19 @@ function (dojo, declare) {
             return "90deg";
         },
 
+        renderDistrict: function(county, color) {
+            var id = county.x + "_" + county.y;
+            dojo.addClass("overlay_" + id, "overlay_active");
+            dojo.style(
+                "overlay_" + id, "backgroundPosition",
+                this.getOverlayBackgroundPosition(color));
+
+            // Add meeple.
+            if (county.place === '1') {
+                this.placeDistrictMeeple(id, this.getActivePlayerId(), color);
+            }
+        },
+
         placeDistrictMeeple: function(id, playerId, winnerColor) {
             dojo.place(this.format_block("jstpl_district_meeple", {
                 id: id
@@ -296,6 +279,21 @@ function (dojo, declare) {
                 "district_meeple_" + id, "backgroundPosition",
                 this.getDistrictBackgroundPosition(winnerColor)
             );
+        },
+
+        getUserReadablePlayerColor: function(color) {
+            switch (color) {
+                case this.yellowPlayerColor:
+                    return "yellow";
+                case this.greenPlayerColor:
+                    return "green";
+                case this.bluePlayerColor:
+                    return "blue";
+                case this.redPlayerColor:
+                    return "red";
+                default:
+                    return;
+            }
         },
 
         ///////////////////////////////////////////////////
@@ -322,7 +320,6 @@ function (dojo, declare) {
                 return;
             }
 
-            console.log(id);
             // Id is of the form "edge_location_(x1,y1)_(x2,y2)".
             let regexp = 
                 /edge_location_\((?<x1>.*),(?<y1>.*)\)_\((?<x2>.*),(?<y2>.*)\)/;
@@ -335,39 +332,22 @@ function (dojo, declare) {
             }, this, function(result) {});
         },
         
-        /* Example:
-        
-        onMyMethodToCall1: function( evt )
-        {
-            console.log( 'onMyMethodToCall1' );
-            
-            // Preventing default browser reaction
-            dojo.stopEvent( evt );
+        onChooseDistrictTieBreak: function (arg) {
+            // Check that this action is posible.
+            if (!this.checkAction("selectDistrictWinner")) {
+                console.log("This action is not possible right now!");
+                return;
+            }
 
-            // Check that this action is possible (see "possibleactions" in states.inc.php)
-            if( ! this.checkAction( 'myAction' ) )
-            {   return; }
-
-            this.ajaxcall( "/mapmaker/mapmaker/myAction.html", { 
-                                                                    lock: true, 
-                                                                    myArgument1: arg1, 
-                                                                    myArgument2: arg2,
-                                                                    ...
-                                                                 }, 
-                         this, function( result ) {
-                            
-                            // What to do after the server call if it succeeded
-                            // (most of the time: nothing)
-                            
-                         }, function( is_error) {
-
-                            // What to do after the server call in anyway (success or failure)
-                            // (most of the time: nothing)
-
-                         } );        
-        },        
-        
-        */
+            let pieces = arg.currentTarget.id.split('_');
+            var id = pieces[2];
+            var color = pieces[3];
+            this.ajaxcall(
+                "/mapmaker/mapmaker/selectDistrictWinner.html", {
+                    id: id,
+                    color: color,
+                }, this, function (result) { });
+        },
 
         
         ///////////////////////////////////////////////////
@@ -415,19 +395,9 @@ function (dojo, declare) {
         notif_newDistrict: function(notif) {
             // Mark all counties as played.
             for (var county of notif.args.counties) {
-                var id = county[0] + "_" + county[1];
-                dojo.addClass("overlay_" + id, "overlay_active");
-                dojo.style(
-                    "overlay_" + id, "backgroundPosition",
-                    this.getOverlayBackgroundPosition(notif.args.winner_color));
-                
+                this.renderDistrict(
+                    county, notif.args.winner_color);                
             }
-
-            // Create and move district meeple.
-            var position = notif.args.position;
-            var id = position[0] + "_" + position[1];
-            this.placeDistrictMeeple(
-                id, notif.args.winner_id, notif.args.winner_color);
         },
 
         notif_newScores: function(notif) {
