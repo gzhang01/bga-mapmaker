@@ -80,7 +80,7 @@ $gameinfos = array(
 
 
 // Complexity of the game, from 0 (extremely simple) to 5 (extremely complex)
-'complexity' => 1,    
+'complexity' => 2,    
 
 // Luck of the game, from 0 (absolutely no luck in this game) to 5 (totally luck driven)
 'luck' => 1,
