@@ -62,7 +62,7 @@ function (dojo, declare) {
             }
             
             // Set up initial tiles.
-            this.setupCountyTiles(gamedatas.counties);
+            this.setupCountyTiles(gamedatas.counties, gamedatas.districts);
             this.setupEdgeTiles(gamedatas.edges);
             
             // Set up various click handlers.
@@ -74,7 +74,7 @@ function (dojo, declare) {
             console.log( "Ending game setup" );
         },
 
-        setupCountyTiles: function(counties) {
+        setupCountyTiles: function(counties, districts) {
             for (var county of counties) {
                 var id = county.x + "_" + county.y;
                 dojo.place(this.format_block("jstpl_county", {
@@ -84,12 +84,14 @@ function (dojo, declare) {
                     "county_" + id, "backgroundPosition", 
                     this.getCountyBackgroundPosition(
                         county.color, parseInt(county.val)));
-                if (county.winner !== null) {
+                if (county.district_id !== null) {
                     dojo.addClass("county_" + id, "is_placed_county");
                 }
                 if (county.place === '1') {
                     this.placeDistrictMeeple(
-                        id, this.getActivePlayerId(), county.winner);
+                        id, 
+                        this.getActivePlayerId(), 
+                        districts[county.district_id]);
                 }
             }
         },

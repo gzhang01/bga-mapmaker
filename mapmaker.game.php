@@ -193,9 +193,10 @@ class mapmaker extends Table
   
         // TODO: Gather all information about current game situation (visible by player $current_player_id).
         $result['counties'] = self::getObjectListFromDB(
-            "SELECT coord_x x, coord_y y, county_player color, county_lean val, district_player winner, district_placement place FROM counties"
-        );
+            "SELECT coord_x x, coord_y y, county_player color, county_lean val, district district_id, district_placement place FROM counties");
         $result['edges'] = self::getEdgesAsObjectList();
+        $result['districts'] = self::getCollectionFromDb(
+            "SELECT id, player_color FROM districts", true);
   
         return $result;
     }
@@ -227,7 +228,7 @@ class mapmaker extends Table
     */
     private function getCountiesAsDoubleKeyCollection() {
         return self::getDoubleKeyCollectionFromDB(
-            "SELECT coord_x, coord_y, county_player, county_lean,  district_player FROM counties"
+            "SELECT coord_x, coord_y, county_player, county_lean, district FROM counties"
         );
     }
 
@@ -352,7 +353,7 @@ class mapmaker extends Table
             $x = $districtCounty[0];
             $y = $districtCounty[1];
             $county = $counties[$x][$y];
-            if ($county["district_player"] !== NULL) {
+            if ($county["district"] !== NULL) {
                 throw new BgaVisibleSystemException(
                     "District player for new district creation was not null!");
             }
@@ -373,8 +374,10 @@ class mapmaker extends Table
         }
         $winnerColor = $winners[0];
         
-        // Update district_player for these counties.
-        $sql = "UPDATE counties SET district_player='$winnerColor' WHERE (coord_x, coord_y) IN (";
+        // Create a district for these counties.
+        self::DbQuery("INSERT INTO districts (player_color) VALUES ('$winnerColor')");
+        $districtId = self::getUniqueValueFromDB("SELECT MAX(id) FROM districts");
+        $sql = "UPDATE counties SET district='$districtId' WHERE (coord_x, coord_y) IN (";
         $sql .= implode($countySqlValues, ',') . ")";
         self::DbQuery($sql);
 
@@ -456,7 +459,7 @@ class mapmaker extends Table
         $reachableFrom2 = 
             self::getAllReachableNeighbors($neighbors, array($x2, $y2));
         $remainingCounties = 
-            self::getUniqueValueFromDB("SELECT COUNT(*) FROM `counties` WHERE district_player IS NULL");
+            self::getUniqueValueFromDB("SELECT COUNT(*) FROM `counties` WHERE district IS NULL");
         // If cells are cut off from each other, we want to check for valid districts and create them if necessary. Even if they are not cut off, if the reachable areas are less than total counties remaining, it's still possible that this edge placement means no other edges can be placed within this region. This too may make a county.
         if (array_search(array($x2, $y2), $reachableFrom1) !== false 
                 || count($reachableFrom1) < $remainingCounties) {

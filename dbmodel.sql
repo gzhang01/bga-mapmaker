@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS `counties` (
     `coord_y` smallint(5) NOT NULL,
     `county_player` varchar(6) NOT NULL,
     `county_lean` smallint(5) unsigned NOT NULL,
-    `district_player` varchar(6) DEFAULT NULL,
+    `district` INT DEFAULT NULL,
     `district_placement` boolean NOT NULL DEFAULT FALSE,
     PRIMARY KEY (`coord_x`, `coord_y`)
 ) ENGINE=InnoDB;
@@ -50,4 +50,10 @@ CREATE TABLE IF NOT EXISTS `edges` (
     `county_2_y` smallint(5) NOT NULL,
     `is_placed` boolean NOT NULL DEFAULT FALSE,
     PRIMARY KEY (`county_1_x`, `county_1_y`, `county_2_x`, `county_2_y`)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS `districts` (
+    `id` INT NOT NULL AUTO_INCREMENT,
+    `player_color` VARCHAR(6) DEFAULT NULL,
+    PRIMARY KEY (`id`)
 ) ENGINE=InnoDB;
