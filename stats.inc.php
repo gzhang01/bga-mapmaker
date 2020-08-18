@@ -64,12 +64,42 @@ $stats_type = array(
 
         "total_district_margin" =>
             array("id"=> 11,
-                  "name" => totranslate("Total district win margin"),
+                  "name" => totranslate("Total win margin"),
                   "type" => "int"),
 
         "average_district_margin" => 
             array("id"=> 12,
-                  "name" => totranslate("Average district win margin"),
+                  "name" => totranslate("Average win margin"),
+                  "type" => "float"),
+
+        "districts_won_player" =>
+            array("id"=> 13,
+                  "name" => totranslate("[Player closed] Districts won"),
+                  "type" => "int"),
+
+        "total_district_margin_player" =>
+            array("id"=> 14,
+                  "name" => totranslate("[Player closed] Total win margin"),
+                  "type" => "int"),
+
+        "average_district_margin_player" =>
+            array("id"=> 15,
+                  "name" => totranslate("[Player closed] Average win margin"),
+                  "type" => "float"),
+
+        "districts_won_opponent" =>
+            array("id"=> 16,
+                  "name" => totranslate("[Opponent closed] Districts won"),
+                  "type" => "int"),
+
+        "total_district_margin_opponent" =>
+            array("id"=> 17,
+                  "name" => totranslate("[Opponent closed] Total win margin"),
+                  "type" => "int"),
+
+        "average_district_margin_opponent" =>
+            array("id"=> 18,
+                  "name" => totranslate("[Opponent closed] Average win margin"),
                   "type" => "float"),
     )
 );

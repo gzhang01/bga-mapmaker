@@ -57,5 +57,6 @@ CREATE TABLE IF NOT EXISTS `districts` (
     `player_color` VARCHAR(6) DEFAULT NULL,
     `possible_winners` TEXT DEFAULT NULL,
     `win_margin` INT DEFAULT NULL,
+    `closing_player_id` INT(10) DEFAULT NULL,
     PRIMARY KEY (`id`)
 ) ENGINE=InnoDB;

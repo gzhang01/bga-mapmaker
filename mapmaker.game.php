@@ -427,8 +427,10 @@ class mapmaker extends Table
         if (count($scores) > 1) {
             $winMargin -= $scores[1];
         }
+        $closingPlayer = self::getActivePlayerId();
         self::DbQuery(
-            "UPDATE districts SET win_margin='$winMargin' 
+            "UPDATE districts 
+             SET win_margin='$winMargin', closing_player_id='$closingPlayer' 
              WHERE id='$districtId'");
     }
 
@@ -436,7 +438,7 @@ class mapmaker extends Table
         // Notify players of district formation.
         $winnerInfo = 
             self::getObjectFromDb("SELECT player_name, player_id FROM `player` WHERE player_color='$winnerColor'");
-        $playerId = $winnerInfo["player_id"];
+        $winnerPlayerId = $winnerInfo["player_id"];
         $district = self::getObjectListFromDB(
             "SELECT coord_x x, coord_y y, district_placement place
              FROM counties WHERE district='$districtId'");
@@ -446,7 +448,7 @@ class mapmaker extends Table
             array(
                 "player_name" => self::getActivePlayerName(),
                 "winner" => $winnerInfo["player_name"],
-                "winner_id" => $playerId,
+                "winner_id" => $winnerPlayerId,
                 "winner_color" => $winnerColor,
                 "counties" => $district,
         ));
@@ -460,11 +462,23 @@ class mapmaker extends Table
         ));
 
         // Update statistics for winner.
-        self::incStat(1, "districts_won", $playerId);
-        $winMargin = 
-            self::getUniqueValueFromDB(
-                "SELECT win_margin FROM districts WHERE id='$districtId'");
-        self::incStat($winMargin, "total_district_margin", $playerId);
+        $districtInfo = 
+            self::getObjectFromDB(
+                "SELECT id, win_margin, closing_player_id 
+                 FROM districts WHERE id='$districtId'");
+        $winMargin = $districtInfo["win_margin"];
+        $closingPlayerId = $districtInfo["closing_player_id"];
+        self::incStat(1, "districts_won", $winnerPlayerId);
+        self::incStat($winMargin, "total_district_margin", $winnerPlayerId);
+        if ($winnerPlayerId == $closingPlayerId) {
+            self::incStat(1, "districts_won_player", $winnerPlayerId);
+            self::incStat(
+                $winMargin, "total_district_margin_player", $winnerPlayerId);
+        } else {
+            self::incStat(1, "districts_won_opponent", $winnerPlayerId);
+            self::incStat(
+                $winMargin, "total_district_margin_opponent", $winnerPlayerId);
+        }
     }
 
     private function createNewDistrict($newDistrict, $counties) {
@@ -514,14 +528,19 @@ class mapmaker extends Table
     private function finalizeStatistics() {
         $playerIds = 
             self::getObjectListFromDB("SELECT player_id from player", true);
+        $statTypes = array("", "_player", "_opponent");
         foreach ($playerIds as $playerId) {
-            $districtsWon = self::getStat("districts_won", $playerId);
-            $totalMargin = self::getStat("total_district_margin", $playerId);
-            if ($districtsWon !== 0) {
-                self::setStat(
-                    $totalMargin / $districtsWon, 
-                    "average_district_margin", 
-                    $playerId);
+            foreach ($statTypes as $statType) {
+                $districtsWon = self::getStat(
+                    "districts_won" . $statType, $playerId);
+                $totalMargin = self::getStat(
+                    "total_district_margin" . $statType, $playerId);
+                if ($districtsWon !== 0) {
+                    self::setStat(
+                        $totalMargin / $districtsWon, 
+                        "average_district_margin" . $statType, 
+                        $playerId);
+                }
             }
         }
     }
