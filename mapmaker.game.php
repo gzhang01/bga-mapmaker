@@ -251,6 +251,12 @@ class mapmaker extends Table
              WHERE player_color IS NULL");
     }
 
+    // Returns count of counties remaining in the board.
+    // Should be used to determine whether the game is over (if count == 0).
+    private function getRemainingCountiesCount() {
+        return self::getUniqueValueFromDB("SELECT COUNT(*) FROM `counties` WHERE district IS NULL");
+    }
+
     // Finds a given edge in the list of edges.
     private function findEdge($edges, $x1, $y1, $x2, $y2) {
         foreach ($edges as $edge) {
@@ -535,8 +541,7 @@ class mapmaker extends Table
             self::getAllReachableNeighbors($neighbors, array($x1, $y1));
         $reachableFrom2 = 
             self::getAllReachableNeighbors($neighbors, array($x2, $y2));
-        $remainingCounties = 
-            self::getUniqueValueFromDB("SELECT COUNT(*) FROM `counties` WHERE district IS NULL");
+        $remainingCounties = self::getRemainingCountiesCount();
         // If cells are cut off from each other, we want to check for valid districts and create them if necessary. Even if they are not cut off, if the reachable areas are less than total counties remaining, it's still possible that this edge placement means no other edges can be placed within this region. This too may make a county.
         if (array_search(array($x2, $y2), $reachableFrom1) === false 
                 || count($reachableFrom1) < $remainingCounties) {
@@ -626,6 +631,12 @@ class mapmaker extends Table
         $unclaimedDistricts = self::getUnclaimedDistricts();
         if (count($unclaimedDistricts) > 0) {
             $this->gamestate->nextState("districtTieBreak");
+            return;
+        }
+
+        // Determine if the game is over.
+        if (self::getRemainingCountiesCount() == 0) {
+            $this->gamestate->nextState("endGame");
             return;
         }
 
