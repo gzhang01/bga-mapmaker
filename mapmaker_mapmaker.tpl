@@ -24,9 +24,9 @@
              style="left: {LEFT}px; top: {TOP}px; transform: rotate({DEG}deg)">
         </div>
     <!-- END edge_location -->
+    <div id="edges"></div>
+    <div id="districts"></div>
 </div>
-<div id="edges"></div>
-<div id="districts"></div>
 
 
 <script type="text/javascript">
