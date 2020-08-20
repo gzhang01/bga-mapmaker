@@ -169,7 +169,8 @@ function (dojo, declare) {
                         id: id,
                     }), "edge_location_" + id);
                 } else {
-                    dojo.addClass("edge_location_" + id, "isValidEdgeLocation");
+                    dojo.addClass(
+                        "edge_location_" + id, "is_valid_edge_location");
                 }
             }
         },
@@ -316,7 +317,7 @@ function (dojo, declare) {
 
             // Check if this edge location is valid for this game.
             // Note that this does not assert whether the edge can be played here (i.e. due to rules constraints). It merely asserts whether the edge connects two counties that are both in the game.
-            if (!dojo.hasClass(id, "isValidEdgeLocation")) {
+            if (!dojo.hasClass(id, "is_valid_edge_location")) {
                 console.log(`This is not a valid edge location: ${id}`);
                 return;
             }

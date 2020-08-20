@@ -655,8 +655,10 @@ class mapmaker extends Table
 
     function argPlayerTurn() {
         $edgesToPlay = self::getEdgesToPlay();
+        $edgesPlayed = self::getGameStateValue("player_turns_taken");
         return array(
             "numEdges" => $edgesToPlay,
+            "numEdgesRemaining" => $edgesToPlay - $edgesPlayed,
         );
     }
 
