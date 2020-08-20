@@ -89,8 +89,15 @@ class mapmaker extends Table
 
         // Init game statistics
         self::initStat("player", "districts_won", 0);
+        self::initStat("player", "swing_counties_won", 0);
         self::initStat("player", "total_district_margin", 0);
         self::initStat("player", "average_district_margin", 0);
+        self::initStat("player", "districts_won_player", 0);
+        self::initStat("player", "total_district_margin_player", 0);
+        self::initStat("player", "average_district_margin_player", 0);
+        self::initStat("player", "districts_won_opponent", 0);
+        self::initStat("player", "total_district_margin_opponent", 0);
+        self::initStat("player", "average_district_margin_opponent", 0);
 
         // Activate first player (which is in general a good idea :) )
         $this->activeNextPlayer();
@@ -440,7 +447,7 @@ class mapmaker extends Table
             self::getObjectFromDb("SELECT player_name, player_id FROM `player` WHERE player_color='$winnerColor'");
         $winnerPlayerId = $winnerInfo["player_id"];
         $district = self::getObjectListFromDB(
-            "SELECT coord_x x, coord_y y, district_placement place
+            "SELECT coord_x x, coord_y y, district_placement place, county_lean
              FROM counties WHERE district='$districtId'");
         self::notifyAllPlayers(
             "newDistrict", 
@@ -454,12 +461,26 @@ class mapmaker extends Table
         ));
 
         // Update player score for winner
-        self::DbQuery("UPDATE player SET player_score=player_score+1 WHERE player_color='$winnerColor'");
+        self::DbQuery(
+            "UPDATE player 
+             SET player_score=player_score+1 
+             WHERE player_color='$winnerColor'");
         $newScores = self::getCollectionFromDb(
             "SELECT player_id, player_score FROM player", true);
         self::notifyAllPlayers("newScores", "", array(
             "scores" => $newScores,
         ));
+
+        // Update tiebreak score (based on swing counties)
+        $numSwingCounties = self::getNumSwingCounties($district);
+        if ($numSwingCounties > 0) {
+            self::DbQuery(
+                "UPDATE player 
+                 SET player_score_aux=player_score_aux+$numSwingCounties 
+                 WHERE player_color='$winnerColor'");
+            self::incStat(
+                $numSwingCounties, "swing_counties_won", $winnerPlayerId);
+        }
 
         // Update statistics for winner.
         $districtInfo = 
@@ -479,6 +500,17 @@ class mapmaker extends Table
             self::incStat(
                 $winMargin, "total_district_margin_opponent", $winnerPlayerId);
         }
+    }
+
+    private function getNumSwingCounties($counties) {
+        $count = 0;
+        foreach ($counties as $county) {
+            if (intval($county["county_lean"]) === 1 
+                    || intval($county["county_lean"]) === 0) {
+                $count += 1;
+            }
+        }
+        return $count;
     }
 
     private function createNewDistrict($newDistrict, $counties) {
@@ -535,7 +567,7 @@ class mapmaker extends Table
                     "districts_won" . $statType, $playerId);
                 $totalMargin = self::getStat(
                     "total_district_margin" . $statType, $playerId);
-                if ($districtsWon !== 0) {
+                if (intval($districtsWon) !== 0) {
                     self::setStat(
                         $totalMargin / $districtsWon, 
                         "average_district_margin" . $statType, 
