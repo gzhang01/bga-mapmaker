@@ -164,11 +164,12 @@ function (dojo, declare) {
         setupEdgeTiles: function(edges) {
             for (var edge of edges) {
                 var id = `(${edge.x1},${edge.y1})_(${edge.x2},${edge.y2})`;
-                dojo.addClass("edge_location_" + id, "isValidEdgeLocation");
                 if (edge.isPlaced === "1") {
                     dojo.place(this.format_block("jstpl_edge", {
                         id: id,
                     }), "edge_location_" + id);
+                } else {
+                    dojo.addClass("edge_location_" + id, "isValidEdgeLocation");
                 }
             }
         },
