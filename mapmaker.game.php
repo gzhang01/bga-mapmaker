@@ -724,8 +724,6 @@ class mapmaker extends Table
             return;
         }
 
-        $this->gamestate->nextState("samePlayer");
-        return;
         // Determine whether player has played all edges.
         $turnsTaken = self::getGameStateValue("player_turns_taken");
         if ($turnsTaken < self::getEdgesToPlay()) {
