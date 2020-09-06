@@ -120,7 +120,8 @@ $machinestates = array(
         "type" => "activeplayer",
         "args" => "argDistrictTieBreak",
 		"possibleactions" => array("selectDistrictWinner"),
-    	"transitions" => array("selectDistrictWinner" => STATE_EVALUATE_PLAYER_MOVE),
+    	"transitions" => array(
+            "selectDistrictWinner" => STATE_EVALUATE_PLAYER_MOVE),
     ),
    
     // Final state.

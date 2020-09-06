@@ -345,8 +345,8 @@ function (dojo, declare) {
             }
 
             let pieces = arg.currentTarget.id.split('_');
-            var id = pieces[2];
-            var color = pieces[3];
+            var id = pieces[3];
+            var color = pieces[4];
             this.ajaxcall(
                 "/mapmaker/mapmaker/selectDistrictWinner.html", {
                     id: id,
