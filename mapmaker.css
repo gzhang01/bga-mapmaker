@@ -93,10 +93,14 @@
 .district_meeple {
     width: 60px;
     height: 60px;
-    top: -10px;
-    left: -10px;
     background-image: url("img/meeples.png");
     position: absolute;
+    opacity: 100%;
+    transition: opacity 250ms;
+}
+
+.district_meeple:hover {
+    opacity: 20%;
 }
 
 .overlay {
@@ -111,10 +115,10 @@
 }
 
 .overlay_active {
-    opacity: 0.75;
+    opacity: 60%;
 }
 
 .overlay_choose_winner {
-    opacity: 0.6;
+    opacity: 60%;
     background-position: -320px 0px;
 }

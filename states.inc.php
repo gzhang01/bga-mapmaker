@@ -73,8 +73,8 @@ $machinestates = array(
 
     STATE_PLAYER_TURN => array(
     	"name" => "playerTurn",
-		"description" => clienttranslate('${actplayer} must place ${numEdges} edge(s) (${numEdgesRemaining} remaining).'),
-    	"descriptionmyturn" => clienttranslate('${you} must place ${numEdges} edge(s) (${numEdgesRemaining} remaining).'),
+		"description" => clienttranslate('${actplayer} ${str}.'),
+    	"descriptionmyturn" => clienttranslate('${you} ${str}.'),
         "type" => "activeplayer",
         "args" => "argPlayerTurn",
 		"possibleactions" => array("playEdge"),

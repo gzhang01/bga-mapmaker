@@ -286,13 +286,13 @@ function (dojo, declare) {
         getUserReadablePlayerColor: function(color) {
             switch (color) {
                 case this.yellowPlayerColor:
-                    return "yellow";
+                    return "Yellow Porcupines";
                 case this.greenPlayerColor:
-                    return "green";
+                    return "Green Leaves";
                 case this.bluePlayerColor:
-                    return "blue";
+                    return "Blue Donkeys";
                 case this.redPlayerColor:
-                    return "red";
+                    return "Red Elephants";
                 default:
                     return;
             }

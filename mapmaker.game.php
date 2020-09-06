@@ -656,10 +656,14 @@ class mapmaker extends Table
     function argPlayerTurn() {
         $edgesToPlay = self::getEdgesToPlay();
         $edgesPlayed = self::getGameStateValue("player_turns_taken");
-        return array(
-            "numEdges" => $edgesToPlay,
-            "numEdgesRemaining" => $edgesToPlay - $edgesPlayed,
-        );
+        $edgesRemain = $edgesToPlay - $edgesPlayed;
+        $str = 
+            $edgesToPlay == 1 ? 
+                self::_(
+                    "must place 1 district border ($edgesRemain remaining)") :
+                self::_(
+                    "must place $edgesToPlay district borders ($edgesRemain remaining)");
+        return array("str" => $str);
     }
 
     function argDistrictTieBreak() {
