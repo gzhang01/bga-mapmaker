@@ -48,7 +48,7 @@
 
 /********* You can start writing your CSS below this line: **********/
 
-#board {
+#mmk_board {
     width: 750px;
     height: 750px;
     background-image: url("img/board.png");
@@ -57,7 +57,7 @@
     margin: auto;
 }
 
-.county {
+.mmk_county {
     width: 40px;
     height: 40px;
     border-radius: 50%;
@@ -65,14 +65,14 @@
     position: absolute;
 }
 
-.county_location {
+.mmk_county_location {
     width: 40px;
     height: 40px;
     position: absolute;
     border-radius: 50%;
 }
 
-.edge {
+.mmk_edge {
     width: 42px;
     height: 9px;
     top: 3px;
@@ -81,17 +81,17 @@
     position: absolute;
 }
 
-.edge_location {
+.mmk_edge_location {
     width: 35px;
     height: 14px;
     position: absolute;
 }
 
-.is_valid_edge_location {
+.mmk_is_valid_edge_location {
     cursor: pointer;
 }
 
-.district_meeple {
+.mmk_district_meeple {
     width: 60px;
     height: 60px;
     background-image: url("img/meeples.png");
@@ -100,11 +100,11 @@
     transition: opacity 250ms;
 }
 
-.district_meeple:hover {
+.mmk_district_meeple:hover {
     opacity: 20%;
 }
 
-.overlay {
+.mmk_overlay {
     width: 80px;
     height: 80px;
     top: -17px;
@@ -115,11 +115,11 @@
     position: absolute;
 }
 
-.overlay_active {
+.mmk_overlay_active {
     opacity: 60%;
 }
 
-.overlay_choose_winner {
+.mmk_overlay_choose_winner {
     opacity: 60%;
     background-position: -320px 0px;
 }

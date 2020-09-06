@@ -67,7 +67,8 @@ function (dojo, declare) {
             this.setupEdgeTiles(gamedatas.edges);
             
             // Set up various click handlers.
-            dojo.query(".edge_location").connect("onclick", this, "onPlayEdge");
+            dojo.query(".mmk_edge_location")
+                .connect("onclick", this, "onPlayEdge");
 
             // Setup game notifications to handle (see "setupNotifications" method below)
             this.setupNotifications();
@@ -81,16 +82,16 @@ function (dojo, declare) {
                 var id = county.x + "_" + county.y;
                 dojo.place(this.format_block("jstpl_county", {
                     id: id,
-                }), "county_location_" + id);
+                }), "mmk_county_location_" + id);
                 dojo.style(
-                    "county_" + id, "backgroundPosition", 
+                    "mmk_county_" + id, "backgroundPosition", 
                     this.getCountyBackgroundPosition(
                         county.color, parseInt(county.val)));
                 
                 // Add overlay tile.
                 dojo.place(this.format_block("jstpl_overlay", {
                     id: id,
-                }), "county_location_" + id);
+                }), "mmk_county_location_" + id);
 
                 if (county.district_id !== null 
                         && districts[county.district_id] !== null) {
@@ -167,10 +168,10 @@ function (dojo, declare) {
                 if (edge.isPlaced === "1") {
                     dojo.place(this.format_block("jstpl_edge", {
                         id: id,
-                    }), "edge_location_" + id);
+                    }), "mmk_edge_location_" + id);
                 } else {
                     dojo.addClass(
-                        "edge_location_" + id, "is_valid_edge_location");
+                        "mmk_edge_location_" + id, "mmk_is_valid_edge_location");
                 }
             }
         },
@@ -190,7 +191,8 @@ function (dojo, declare) {
                 case "districtTieBreak":
                     for (var county of args.args.counties) {
                         var id = county["x"] + "_" + county["y"];
-                        dojo.addClass("overlay_" + id, "overlay_choose_winner");
+                        dojo.addClass(
+                            "mmk_overlay_" + id, "mmk_overlay_choose_winner");
                     }
                     break;
                 default:
@@ -207,8 +209,8 @@ function (dojo, declare) {
             
             switch (stateName) {
                 case "districtTieBreak":
-                    dojo.query(".overlay_choose_winner")
-                        .removeClass(".overlay_choose_winner");
+                    dojo.query(".mmk_overlay_choose_winner")
+                        .removeClass(".mmk_overlay_choose_winner");
                 default:
                     break;
             }
@@ -224,7 +226,7 @@ function (dojo, declare) {
                 switch(stateName) {
                     case "districtTieBreak":
                         for (var color of args.possibleWinners) {
-                            var id = "district_tiebreak_"
+                            var id = "mmk_district_tiebreak_"
                                         + args.districtId
                                         + "_"
                                         + color;
@@ -255,9 +257,9 @@ function (dojo, declare) {
 
         renderDistrict: function(county, color) {
             var id = county.x + "_" + county.y;
-            dojo.addClass("overlay_" + id, "overlay_active");
+            dojo.addClass("mmk_overlay_" + id, "mmk_overlay_active");
             dojo.style(
-                "overlay_" + id, "backgroundPosition",
+                "mmk_overlay_" + id, "backgroundPosition",
                 this.getOverlayBackgroundPosition(color));
 
             // Add meeple.
@@ -269,16 +271,17 @@ function (dojo, declare) {
         placeDistrictMeeple: function(id, playerId, winnerColor) {
             dojo.place(this.format_block("jstpl_district_meeple", {
                 id: id
-            }), "districts");
+            }), "mmk_districts");
             this.placeOnObject(
-                "district_meeple_" + id,
+                "mmk_district_meeple_" + id,
                 "overall_player_board_" + playerId);
-            this.slideToObject("district_meeple_" + id, "county_location_" + id)
+            this.slideToObject(
+                    "mmk_district_meeple_" + id, "mmk_county_location_" + id)
                 .play();
 
             // Set proper background position to render meeple.
             dojo.style(
-                "district_meeple_" + id, "backgroundPosition",
+                "mmk_district_meeple_" + id, "backgroundPosition",
                 this.getDistrictBackgroundPosition(winnerColor)
             );
         },
@@ -317,7 +320,7 @@ function (dojo, declare) {
 
             // Check if this edge location is valid for this game.
             // Note that this does not assert whether the edge can be played here (i.e. due to rules constraints). It merely asserts whether the edge connects two counties that are both in the game.
-            if (!dojo.hasClass(id, "is_valid_edge_location")) {
+            if (!dojo.hasClass(id, "mmk_is_valid_edge_location")) {
                 console.log(`This is not a valid edge location: ${id}`);
                 return;
             }
@@ -384,12 +387,13 @@ function (dojo, declare) {
             var id = `(${notif.args.x1},${notif.args.y1})_(${notif.args.x2},${notif.args.y2})`;
             dojo.place(this.format_block("jstpl_edge", {
                 id: id,
-            }), "edges");
+            }), "mmk_edges");
             this.placeOnObject(
-                "edge_" + id, "overall_player_board_" + notif.args.player_id);
-            this.slideToObject("edge_" + id, "edge_location_" + id).play();
+                "mmk_edge_" + id, "overall_player_board_" + notif.args.player_id);
+            this.slideToObject("mmk_edge_" + id, "mmk_edge_location_" + id)
+                .play();
             dojo.style(
-                "edge_" + id, "transform",
+                "mmk_edge_" + id, "transform",
                 `rotate(${this.getEdgeRotation(
                     parseInt(notif.args.y1), parseInt(notif.args.y2))})`);
         },
