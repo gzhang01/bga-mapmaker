@@ -77,8 +77,11 @@ $machinestates = array(
     	"descriptionmyturn" => clienttranslate('${you} ${str}.'),
         "type" => "activeplayer",
         "args" => "argPlayerTurn",
-		"possibleactions" => array("playEdge"),
-    	"transitions" => array("playEdge" => STATE_EVALUATE_PLAYER_MOVE),
+		"possibleactions" => array("playEdge", ),
+    	"transitions" => array(
+            "playEdge" => STATE_EVALUATE_PLAYER_MOVE,
+            "zombiePass" => STATE_NEXT_PLAYER,
+        ),
     ),
 
     STATE_EVALUATE_PLAYER_MOVE => array(
