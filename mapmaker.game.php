@@ -393,14 +393,20 @@ class mapmaker extends Table
                 return false;
             }
             
-            // Expect one neighbor of this county to have 2 neighbors. Other to have 3. If this is true, then this is a three-prong arm and we continue searching.
+            // Expect one neighbor of this county to have 2 neighbors. Other to have 3.
             $neighborsOf2N = 
                 $neighbors[$twoNeighborCounty[0]][$twoNeighborCounty[1]];
             if ((self::getNeighborCount($neighborsOf2N[0], $neighbors) == 2 &&  
                  self::getNeighborCount($neighborsOf2N[1], $neighbors) == 3) || 
                 (self::getNeighborCount($neighborsOf2N[0], $neighbors) == 3 && 
                  self::getNeighborCount($neighborsOf2N[1], $neighbors) == 2)) {
-                continue;
+                // Check that these two neighbors are neighbors of each other by validating that one is in the neighbors list of the other. If so, this is a three-prong arm and we continue searching.
+                $needle = $neighborsOf2N[0];
+                $haystack = 
+                    $neighbors[$neighborsOf2N[1][0]][$neighborsOf2N[1][1]];
+                if (in_array($needle, $haystack)) {
+                    continue;
+                }
             }
             return false;
         }
@@ -627,17 +633,30 @@ class mapmaker extends Table
             self::getAllReachableNeighbors($neighbors, array($x2, $y2));
         $remainingCounties = self::getRemainingCountiesCount();
         // If cells are cut off from each other, we want to check for valid districts and create them if necessary. Even if they are not cut off, if the reachable areas are less than total counties remaining, it's still possible that this edge placement means no other edges can be placed within this region. This too may make a county.
-        if (array_search(array($x2, $y2), $reachableFrom1) === false 
+        if (!in_array(array($x2, $y2), $reachableFrom1)
                 || count($reachableFrom1) < $remainingCounties) {
             if (self::isValidDistrict($reachableFrom1, $edges)) {
                 self::createNewDistrict($reachableFrom1, $counties);
             }
-            if (self::isValidDistrict($reachableFrom2, $edges)) {
+            if (!self::isSameCounty($reachableFrom1, $reachableFrom2) &&
+                    self::isValidDistrict($reachableFrom2, $edges)) {
                 self::createNewDistrict($reachableFrom2, $counties);
             }
         }
 
         $this->gamestate->nextState("playEdge");
+    }
+
+    function isSameCounty($county1, $county2) {
+        if (count($county1) !== count($county2)) {
+            return false;
+        }
+        foreach ($county1 as $county) {
+            if (!in_array($county, $county2)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     function selectDistrictWinner($id, $color) {
@@ -705,6 +724,8 @@ class mapmaker extends Table
             return;
         }
 
+        $this->gamestate->nextState("samePlayer");
+        return;
         // Determine whether player has played all edges.
         $turnsTaken = self::getGameStateValue("player_turns_taken");
         if ($turnsTaken < self::getEdgesToPlay()) {
