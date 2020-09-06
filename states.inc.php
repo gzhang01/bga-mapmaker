@@ -86,6 +86,7 @@ $machinestates = array(
         "description" => "",
         "type" => "game",
         "action" => "stEvaluatePlayerMove",
+        "updateGameProgression" => true,
         "transitions" => array(
             "districtTieBreak" => STATE_DISTRICT_TIE_BREAK,
             "samePlayer" => STATE_SAME_PLAYER, 

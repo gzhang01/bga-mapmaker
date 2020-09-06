@@ -217,9 +217,9 @@ class mapmaker extends Table
     */
     function getGameProgression()
     {
-        // TODO: compute and return the game progression
-
-        return 0;
+        $remaining = self::getRemainingCountiesCount();
+        $total = self::getUniqueValueFromDB("SELECT COUNT(*) FROM `counties`");
+        return ($total - $remaining) / $total * 100;
     }
 
 
