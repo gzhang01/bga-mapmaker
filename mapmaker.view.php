@@ -94,10 +94,10 @@
     }
     
     private function getCountyPixelLocation($x, $y) {
-      $scale = 66.7;
+      $scale = 66.9;
       $angle = M_PI / 3;
-      return array(round($x * $scale + $y * $scale * cos($angle)) + 358,
-          round(-1 * $y * $scale * sin($angle)) + 352);
+      return array(round($x * $scale + $y * $scale * cos($angle)) + 355,
+          round(-1 * $y * $scale * sin($angle)) + 354);
     }
 
     private function getEdgeRotation($y1, $y2) {

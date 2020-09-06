@@ -52,6 +52,7 @@
     width: 750px;
     height: 750px;
     background-image: url("img/board.png");
+    background-size: 750px 750px;
     position: relative;
     margin: auto;
 }
