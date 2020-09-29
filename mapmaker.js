@@ -23,8 +23,6 @@ define([
 function (dojo, declare) {
     return declare("bgagame.mapmaker", ebg.core.gamegui, {
         constructor: function(){
-            console.log('mapmaker constructor');
-            
             // Side length of spites within tokens.png.
             this.countySpriteLength = 50;
 
@@ -51,8 +49,6 @@ function (dojo, declare) {
         
         setup: function( gamedatas )
         {
-            console.log( "Starting game setup" );
-            
             // Setting up player boards
             for( var player_id in gamedatas.players )
             {
@@ -72,8 +68,6 @@ function (dojo, declare) {
 
             // Setup game notifications to handle (see "setupNotifications" method below)
             this.setupNotifications();
-
-            console.log( "Ending game setup" );
         },
 
         setupCountyAndOverlayTiles: function(counties, districts) {
@@ -184,9 +178,7 @@ function (dojo, declare) {
         //                  You can use this method to perform some user interface changes at this moment.
         //
         onEnteringState: function( stateName, args )
-        {
-            console.log( 'Entering state: '+stateName );
-            
+        {   
             switch (stateName) {
                 case "districtTieBreak":
                     for (var county of args.args.counties) {
@@ -204,9 +196,7 @@ function (dojo, declare) {
         //                 You can use this method to perform some user interface changes at this moment.
         //
         onLeavingState: function( stateName )
-        {
-            console.log( 'Leaving state: '+stateName );
-            
+        {   
             switch (stateName) {
                 case "districtTieBreak":
                     dojo.query(".mmk_overlay_choose_winner")
@@ -219,9 +209,7 @@ function (dojo, declare) {
 
         // onUpdateActionButtons: in this method you can manage "action buttons" that are displayed in the action status bar (ie: the HTML links in the status bar).
         onUpdateActionButtons: function( stateName, args )
-        {
-            console.log( 'onUpdateActionButtons: '+stateName );
-                      
+        {             
             if (this.isCurrentPlayerActive()) {
                 switch(stateName) {
                     case "districtTieBreak":
@@ -305,14 +293,11 @@ function (dojo, declare) {
         //// Player's action
         
         onPlayEdge: function(evt) {
-            console.log("onPlayEdge");
-
             // Preventing default browser reaction.
             dojo.stopEvent(evt);
 
             // Check that this action is posible.
             if (!this.checkAction("playEdge")) {
-                console.log("This action is not possible right now!");
                 return;
             }
             
@@ -321,7 +306,6 @@ function (dojo, declare) {
             // Check if this edge location is valid for this game.
             // Note that this does not assert whether the edge can be played here (i.e. due to rules constraints). It merely asserts whether the edge connects two counties that are both in the game.
             if (!dojo.hasClass(id, "mmk_is_valid_edge_location")) {
-                console.log(`This is not a valid edge location: ${id}`);
                 return;
             }
 
@@ -340,7 +324,6 @@ function (dojo, declare) {
         onChooseDistrictTieBreak: function (arg) {
             // Check that this action is posible.
             if (!this.checkAction("selectDistrictWinner")) {
-                console.log("This action is not possible right now!");
                 return;
             }
 
@@ -369,8 +352,6 @@ function (dojo, declare) {
         */
         setupNotifications: function()
         {
-            console.log( 'notifications subscriptions setup' );
-
             dojo.subscribe("playedEdge", this, "notif_playedEdge");
             this.notifqueue.setSynchronous("playedEdge", 500);
             dojo.subscribe("newDistrict", this, "notif_newDistrict");
@@ -381,9 +362,6 @@ function (dojo, declare) {
         
 
         notif_playedEdge: function(notif) {
-            console.log("notif_playedEdge");
-            console.log(notif);
-
             var id = `(${notif.args.x1},${notif.args.y1})_(${notif.args.x2},${notif.args.y2})`;
             dojo.place(this.format_block("jstpl_edge", {
                 id: id,
