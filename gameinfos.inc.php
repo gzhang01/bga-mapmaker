@@ -137,6 +137,8 @@ $gameinfos = array(
 //  IMPORTANT: it is mandatory that the FIRST tag is 1, 2, 3 and 4 (= game category)
 'tags' => array(2, 11),
 
+// Disable 3d mode, since border rotation does not work in 3d mode.
+'enable_3d' => false,
 
 //////// BGA SANDBOX ONLY PARAMETERS (DO NOT MODIFY)
 
