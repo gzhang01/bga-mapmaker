@@ -264,8 +264,6 @@ class mapmaker extends Table
     // Finds a given edge in the list of edges.
     private function findEdge($edges, $x1, $y1, $x2, $y2) {
         foreach ($edges as $edge) {
-            // var_dump($edge);
-            // die("ok");
             if ($edge["x1"] == $x1 && $edge["y1"] == $y1 
                     && $edge["x2"] == $x2 && $edge["y2"] == $y2) {
                 return $edge;
@@ -598,6 +596,14 @@ class mapmaker extends Table
         if ($edge["isPlaced"]) {
             throw new BgaUserException(
                 self::_("This edge has already been placed!"));
+        }
+
+        // Check if edge is already within district.
+        if ($counties[$x1][$y1]["district"] !== NULL ||
+                $counties[$x2][$y2]["district"] !== NULL) {
+            throw new BgaUserException(
+                self::_("Cannot place edge inside completed district!")
+            );
         }
 
         if (self::createsInvalidDistrict($edge, $edges)) {
