@@ -595,20 +595,20 @@ class mapmaker extends Table
         // Check if edge has already been played.
         if ($edge["isPlaced"]) {
             throw new BgaUserException(
-                self::_("This edge has already been placed!"));
+                self::_("This district border has already been placed!"));
         }
 
         // Check if edge is already within district.
         if ($counties[$x1][$y1]["district"] !== NULL ||
                 $counties[$x2][$y2]["district"] !== NULL) {
             throw new BgaUserException(
-                self::_("Cannot place edge inside completed district!")
+                self::_("Cannot place district border inside completed district!")
             );
         }
 
         if (self::createsInvalidDistrict($edge, $edges)) {
             throw new BgaUserException(
-                self::_("An edge cannot be placed here: it would create a district of size < 4."));
+                self::_("A district border cannot be placed here: it would create a district of size < 4."));
         }
 
         self::DbQuery(
