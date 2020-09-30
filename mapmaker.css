@@ -96,12 +96,12 @@
     height: 60px;
     background-image: url("img/meeples.png");
     position: absolute;
-    opacity: 100%;
+    opacity: 1.0;
     transition: opacity 250ms;
 }
 
 .mmk_district_meeple:hover {
-    opacity: 20%;
+    opacity: 0.2;
 }
 
 .mmk_overlay {
@@ -116,10 +116,10 @@
 }
 
 .mmk_overlay_active {
-    opacity: 60%;
+    opacity: 0.6;
 }
 
 .mmk_overlay_choose_winner {
-    opacity: 60%;
+    opacity: 0.6;
     background-position: -320px 0px;
 }

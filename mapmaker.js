@@ -311,13 +311,13 @@ function (dojo, declare) {
 
             // Id is of the form "edge_location_(x1,y1)_(x2,y2)".
             let regexp = 
-                /edge_location_\((?<x1>.*),(?<y1>.*)\)_\((?<x2>.*),(?<y2>.*)\)/;
+                /edge_location_\((.*),(.*)\)_\((.*),(.*)\)/;
             let match = regexp.exec(id);
             this.ajaxcall("/mapmaker/mapmaker/playEdge.html", {
-                x1: match.groups.x1,
-                y1: match.groups.y1,
-                x2: match.groups.x2,
-                y2: match.groups.y2,
+                x1: match[1],
+                y1: match[2],
+                x2: match[3],
+                y2: match[4],
             }, this, function(result) {});
         },
         
