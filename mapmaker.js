@@ -58,9 +58,9 @@ function (dojo, declare) {
             }
             
             // Set up initial tiles.
+            this.setupEdgeTiles(gamedatas.edges);
             this.setupCountyAndOverlayTiles(
                 gamedatas.counties, gamedatas.districts);
-            this.setupEdgeTiles(gamedatas.edges);
             
             // Set up various click handlers.
             dojo.query(".mmk_edge_location")
@@ -73,7 +73,7 @@ function (dojo, declare) {
         setupCountyAndOverlayTiles: function(counties, districts) {
             for (var county of counties) {
                 // Add county tile.
-                var id = county.x + "_" + county.y;
+                var id = this.getId(county.x, county.y);
                 dojo.place(this.format_block("jstpl_county", {
                     id: id,
                 }), "mmk_county_location_" + id);
@@ -163,13 +163,44 @@ function (dojo, declare) {
                     dojo.place(this.format_block("jstpl_edge", {
                         id: id,
                     }), "mmk_edge_location_" + id);
+                    if (edge.playerColor) {
+                        dojo.addClass(
+                            "mmk_edge_" + id, 
+                            "mmk_edge_" + edge.playerColor);
+                    }
+                    this.placeEdgeBorder(
+                        id,
+                        this.getEdgeRotation(
+                            parseInt(edge.y1), parseInt(edge.y2)),
+                        edge.playerColor ? edge.playerColor : "");
                 } else {
                     dojo.addClass(
-                        "mmk_edge_location_" + id, "mmk_is_valid_edge_location");
+                        "mmk_edge_location_" + id, 
+                        [
+                            "mmk_is_valid_edge_location",
+                            "county_endpoint_" + this.getId(edge.x1, edge.y1),
+                            "county_endpoint_" + this.getId(edge.x2, edge.y2),
+                        ]);
                 }
             }
         },
        
+        // Places a white border around the edge to make it more visible.
+        // This is modeled as an extra div below the edge so that overlaps are not apparent.
+        // If playerColor is passed in, then edge is currently still active and this div is hidden (to be shown on nextPlayer).
+        placeEdgeBorder: function(id, rotation, playerColor) {
+            dojo.place(
+                this.format_block(
+                    "jstpl_edge_border", { id: id }), "mmk_edges");
+            edgeId = "mmk_edge_border_" + id;
+            this.placeOnObject(
+                edgeId, "mmk_edge_location_" + id);
+            dojo.style(
+                edgeId, "transform", `rotate(${rotation})`);
+            if (playerColor) {
+                dojo.addClass(edgeId, "mmk_hidden mmk_hidden_" + playerColor);
+            }
+        },
 
         ///////////////////////////////////////////////////
         //// Game & client states
@@ -180,9 +211,18 @@ function (dojo, declare) {
         onEnteringState: function( stateName, args )
         {   
             switch (stateName) {
+                case "nextPlayer":
+                    // Remove the player color border around the edge.
+                    var edgeClass = "mmk_edge_" + args.args.playerColor;
+                    dojo.query("." + edgeClass).removeClass(edgeClass);
+                    // Shows the underlying white border.
+                    dojo.query(".mmk_hidden_" + args.args.playerColor)
+                        .removeClass(
+                            "mmk_hidden mmk_hidden_" + args.args.playerColor);
+                    break;
                 case "districtTieBreak":
                     for (var county of args.args.counties) {
-                        var id = county["x"] + "_" + county["y"];
+                        var id = this.getId(county["x"], county["y"]);
                         dojo.addClass(
                             "mmk_overlay_" + id, "mmk_overlay_choose_winner");
                     }
@@ -200,7 +240,7 @@ function (dojo, declare) {
             switch (stateName) {
                 case "districtTieBreak":
                     dojo.query(".mmk_overlay_choose_winner")
-                        .removeClass(".mmk_overlay_choose_winner");
+                        .removeClass("mmk_overlay_choose_winner");
                 default:
                     break;
             }
@@ -233,7 +273,11 @@ function (dojo, declare) {
         ///////////////////////////////////////////////////
         //// Utility methods
         
-        getEdgeRotation: function (y1, y2) {
+        getId: function(x, y) {
+            return x + "_" + y;
+        },
+
+        getEdgeRotation: function(y1, y2) {
             if (y2 > y1) {
                 return "30deg";
             }
@@ -244,7 +288,7 @@ function (dojo, declare) {
         },
 
         renderDistrict: function(county, color) {
-            var id = county.x + "_" + county.y;
+            var id = this.getId(county.x, county.y);
             dojo.addClass("mmk_overlay_" + id, "mmk_overlay_active");
             dojo.style(
                 "mmk_overlay_" + id, "backgroundPosition",
@@ -254,6 +298,10 @@ function (dojo, declare) {
             if (county.place === '1') {
                 this.placeDistrictMeeple(id, this.getActivePlayerId(), color);
             }
+
+            // Remove valid edge location classes on neighboring edges.
+            dojo.query(".county_endpoint_" + this.getId(county.x, county.y))
+                .removeClass("mmk_is_valid_edge_location");
         },
 
         placeDistrictMeeple: function(id, playerId, winnerColor) {
@@ -363,9 +411,9 @@ function (dojo, declare) {
 
         notif_playedEdge: function(notif) {
             var id = `(${notif.args.x1},${notif.args.y1})_(${notif.args.x2},${notif.args.y2})`;
-            dojo.place(this.format_block("jstpl_edge", {
-                id: id,
-            }), "mmk_edges");
+
+            // Place the edge.
+            dojo.place(this.format_block("jstpl_edge", {id: id}), "mmk_edges");
             this.placeOnObject(
                 "mmk_edge_" + id, "overall_player_board_" + notif.args.player_id);
             this.slideToObject("mmk_edge_" + id, "mmk_edge_location_" + id)
@@ -374,6 +422,17 @@ function (dojo, declare) {
                 "mmk_edge_" + id, "transform",
                 `rotate(${this.getEdgeRotation(
                     parseInt(notif.args.y1), parseInt(notif.args.y2))})`);
+            dojo.addClass(
+                "mmk_edge_" + id, "mmk_edge_" + notif.args.player_color);
+            dojo.removeClass(
+                "mmk_edge_location_" + id, "mmk_is_valid_edge_location");
+
+            // Place the outline for this edge.
+            this.placeEdgeBorder(
+                id, 
+                this.getEdgeRotation(
+                    parseInt(notif.args.y1), parseInt(notif.args.y2)), 
+                notif.args.player_color);
         },
 
         notif_newDistrict: function(notif) {

@@ -49,6 +49,7 @@ CREATE TABLE IF NOT EXISTS `edges` (
     `county_2_x` smallint(5) NOT NULL,
     `county_2_y` smallint(5) NOT NULL,
     `is_placed` boolean NOT NULL DEFAULT FALSE,
+    `player_color` VARCHAR(6) DEFAULT NULL,
     PRIMARY KEY (`county_1_x`, `county_1_y`, `county_2_x`, `county_2_y`)
 ) ENGINE=InnoDB;
 

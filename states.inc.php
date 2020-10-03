@@ -109,6 +109,7 @@ $machinestates = array(
         "name" => "nextPlayer",
         "description" => "",
         "type" => "game",
+        "args" => "argNextPlayer",
         "action" => "stNextPlayer",
         "transitions" => array("continueNextPlayer" => STATE_PLAYER_TURN),
     ),

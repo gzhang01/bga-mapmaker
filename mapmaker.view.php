@@ -82,8 +82,8 @@
                 "Y1" => $y1,
                 "X2" => $x2,
                 "Y2" => $y2,
-                "LEFT" => ($pixelLocation1[0] + $pixelLocation2[0]) / 2 + 3,
-                "TOP" => ($pixelLocation1[1] + $pixelLocation2[1]) / 2 + 15,
+                "LEFT" => ($pixelLocation1[0] + $pixelLocation2[0]) / 2 + 2,
+                "TOP" => ($pixelLocation1[1] + $pixelLocation2[1]) / 2 + 14,
                 "DEG" => self::getEdgeRotation($y1, $y2),
               ));
             }

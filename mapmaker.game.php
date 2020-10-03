@@ -227,6 +227,18 @@ class mapmaker extends Table
 //////////// Utility functions
 ////////////    
 
+    private function getActivePlayerColor() {
+        return self::getPlayerColor(self::getActivePlayerId());
+    }
+
+    private function getPlayerColor($player_id) {
+        $players = self::loadPlayersBasicInfos();
+        if (isset($players[$player_id])) {
+            return $players[$player_id]['player_color'];
+        }
+        return null;
+    }
+
     /*
         Returns counties as a double associative array, where x is the first level and y is the second level.
     */
@@ -244,7 +256,7 @@ class mapmaker extends Table
     // Returns edges as an object list.
     private function getEdgesAsObjectList() {
         return self::getObjectListFromDB(
-            "SELECT county_1_x x1, county_1_y y1, county_2_x x2, county_2_y y2, is_placed isPlaced FROM edges"
+            "SELECT county_1_x x1, county_1_y y1, county_2_x x2, county_2_y y2, is_placed isPlaced, player_color playerColor FROM edges"
         );
     }
 
@@ -561,6 +573,11 @@ class mapmaker extends Table
         self::notifyDistrictCreation($districtId, $winnerColor);
     }
 
+    private function removeEdgePlayerColor($playerColor) {
+        self::DbQuery("UPDATE edges SET player_color=NULL
+            WHERE player_color='$playerColor'");
+    }
+
     private function finalizeStatistics() {
         $playerIds = 
             self::getObjectListFromDB("SELECT player_id from player", true);
@@ -611,8 +628,10 @@ class mapmaker extends Table
                 self::_("A district border cannot be placed here: it would create a district of size < 4."));
         }
 
+        $player_color = self::getActivePlayerColor();
         self::DbQuery(
-            "UPDATE edges SET is_placed='1' WHERE (county_1_x, county_1_y, county_2_x, county_2_y) = ($x1,$y1,$x2,$y2)"
+            "UPDATE edges SET is_placed='1', player_color='$player_color' 
+            WHERE (county_1_x, county_1_y, county_2_x, county_2_y) = ($x1,$y1,$x2,$y2)"
         );
         self::incGameStateValue("player_turns_taken", 1);
         self::notifyAllPlayers(
@@ -621,6 +640,7 @@ class mapmaker extends Table
             array(
                 "player_id" => self::getActivePlayerId(),
                 "player_name" => self::getActivePlayerName(),
+                "player_color" => $player_color,
                 "x1" => $x1,
                 "y1" => $y1,
                 "x2" => $x2,
@@ -691,6 +711,12 @@ class mapmaker extends Table
         return array("str" => $str);
     }
 
+    function argNextPlayer() {
+        return array(
+            "playerColor" => 
+                self::getPlayerColor(self::getActivePlayerId()));
+    }
+
     function argDistrictTieBreak() {
         $unclaimedDistricts = self::getUnclaimedDistricts();
         if (count($unclaimedDistricts) == 0) {
@@ -744,10 +770,14 @@ class mapmaker extends Table
     }
 
     function stNextPlayer() {
+        $player_color_to_remove = 
+            self::getPlayerColor(self::getActivePlayerId());
+
         // Activate next player.
         $player_id = self::activeNextPlayer();
 
         self::giveExtraTime($player_id);
+        self::removeEdgePlayerColor($player_color_to_remove);
         self::setGameStateValue("player_turns_taken", 0);
         self::incGameStateValue("turn_number", 1);
         $this->gamestate->nextState("continueNextPlayer");

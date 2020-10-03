@@ -55,6 +55,7 @@
     background-size: 750px 750px;
     position: relative;
     margin: auto;
+    z-index: 0;
 }
 
 .mmk_county {
@@ -72,6 +73,10 @@
     border-radius: 50%;
 }
 
+#mmk_edges {
+    z-index: 4;
+}
+
 .mmk_edge {
     width: 42px;
     height: 9px;
@@ -79,16 +84,60 @@
     left: -3px;
     background-image: url("img/border.png");
     position: absolute;
+    z-index: 3;
+}
+
+/* Red player */
+.mmk_edge_ff0000 {
+    outline: 2px solid #fb0007;
+    z-index: 4;
+}
+
+/* Blue player */
+.mmk_edge_0000ff {
+    outline: 2px solid #0492c2;
+    z-index: 4;
+}
+
+/* Green player */
+.mmk_edge_008000 {
+    outline: 2px solid #a3ba2e;
+    z-index: 4;
+}
+
+/* Yellow player */
+.mmk_edge_fd9409 {
+    outline: 2px solid #fcd849;
+    z-index: 4; 
+}
+
+.mmk_edge_border {
+    outline: 2px solid rgba(255, 255, 255, 0.5);
+    position: absolute;
+    z-index: 2;
+}
+
+.mmk_hidden {
+    visibility: hidden;
 }
 
 .mmk_edge_location {
     width: 35px;
     height: 14px;
     position: absolute;
+    z-index: 3;
 }
 
 .mmk_is_valid_edge_location {
     cursor: pointer;
+    opacity: 0;
+}
+
+.mmk_is_valid_edge_location:hover {
+    background-image: url("img/border.png");
+    background-repeat: no-repeat;
+    background-position: 0px 2px;
+    opacity: 0.5;
 }
 
 .mmk_district_meeple {

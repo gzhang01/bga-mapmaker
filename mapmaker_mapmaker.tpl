@@ -34,6 +34,8 @@
     var jstpl_district_meeple = 
         '<div id="mmk_district_meeple_${id}" class="mmk_district_meeple"></div>';
     var jstpl_edge = '<div id="mmk_edge_${id}" class="mmk_edge"></div>';
+    var jstpl_edge_border = 
+        '<div id="mmk_edge_border_${id}" class="mmk_edge mmk_edge_border"></div>';
     var jstpl_overlay = '<div id="mmk_overlay_${id}" class="mmk_overlay"></div>';
 </script>  
 
