@@ -657,17 +657,14 @@ class mapmaker extends Table
             self::getAllReachableNeighbors($neighbors, array($x1, $y1));
         $reachableFrom2 = 
             self::getAllReachableNeighbors($neighbors, array($x2, $y2));
-        $remainingCounties = self::getRemainingCountiesCount();
-        // If cells are cut off from each other, we want to check for valid districts and create them if necessary. Even if they are not cut off, if the reachable areas are less than total counties remaining, it's still possible that this edge placement means no other edges can be placed within this region. This too may make a county.
-        if (!in_array(array($x2, $y2), $reachableFrom1)
-                || count($reachableFrom1) < $remainingCounties) {
-            if (self::isValidDistrict($reachableFrom1, $edges)) {
-                self::createNewDistrict($reachableFrom1, $counties);
-            }
-            if (!self::isSameCounty($reachableFrom1, $reachableFrom2) &&
-                    self::isValidDistrict($reachableFrom2, $edges)) {
-                self::createNewDistrict($reachableFrom2, $counties);
-            }
+
+        // Check whether these are valid districts.
+        if (self::isValidDistrict($reachableFrom1, $edges)) {
+            self::createNewDistrict($reachableFrom1, $counties);
+        }
+        if (!self::isSameCounty($reachableFrom1, $reachableFrom2) &&
+                self::isValidDistrict($reachableFrom2, $edges)) {
+            self::createNewDistrict($reachableFrom2, $counties);
         }
 
         $this->gamestate->nextState("playEdge");
