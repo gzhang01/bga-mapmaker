@@ -860,7 +860,11 @@ class mapmaker extends Table
 //        // Please add your future database scheme changes here
 //
 //
-
-
+        if ($from_version < 2010040144) {
+            $sql = "ALTER TABLE DBPREFIX_edges " +
+                   "ADD player_color VARCHAR(6) NULL " + 
+                   "DEFAULT NULL";
+            self::applyDbUpgradeToAllDB($sql);
+        }
     }    
 }
