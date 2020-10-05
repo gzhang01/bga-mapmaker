@@ -860,7 +860,7 @@ class mapmaker extends Table
 //        // Please add your future database scheme changes here
 //
 //
-        if ($from_version <= 2010050303) {
+        if ($from_version <= 2010050613) {
             $sqlColumnCheck = "SHOW COLUMNS FROM edges LIKE 'player_color'";
             $row = self::getObjectFromDB($sqlColumnCheck);
             if (empty($row)) {
