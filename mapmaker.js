@@ -259,7 +259,7 @@ function (dojo, declare) {
                         }
                         if (args.shouldShowReset) {
                             this.addActionButton(
-                                "resetTurn", _("Reset"), "onResetTurn");
+                                "resetTurn", _("Restart turn"), "onResetTurn", null, false, "gray");
                         }
                         break;
                     case "districtTieBreak":
