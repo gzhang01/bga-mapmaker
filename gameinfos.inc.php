@@ -140,6 +140,9 @@ $gameinfos = array(
 // Disable 3d mode, since border rotation does not work in 3d mode.
 'enable_3d' => false,
 
+// Enable undo support.
+'db_undo_support' => true,
+
 //////// BGA SANDBOX ONLY PARAMETERS (DO NOT MODIFY)
 
 // simple : A plays, B plays, C plays, A plays, B plays, ...

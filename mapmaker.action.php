@@ -57,6 +57,18 @@
       self::ajaxResponse();
     }
 
+    public function resetTurn() {
+      self::setAjaxMode();
+      $result = $this->game->resetTurn();
+      self::ajaxResponse();
+    }
+
+    public function confirmTurn() {
+      self::setAjaxMode();
+      $result = $this->game->confirmTurn();
+      self::ajaxResponse();
+    }
+
   }
   
 

@@ -56,6 +56,8 @@ if (!defined('STATE_END_GAME')) {
     define("STATE_SAME_PLAYER", 4);
     define("STATE_NEXT_PLAYER", 5);
     define("STATE_DISTRICT_TIE_BREAK", 6);
+    define("STATE_RESET_TURN", 7);
+    define("STATE_CONFIRM_TURN", 8);
     define("STATE_END_GAME", 99);
 }
 
@@ -77,9 +79,11 @@ $machinestates = array(
     	"descriptionmyturn" => clienttranslate('${you} ${str}.'),
         "type" => "activeplayer",
         "args" => "argPlayerTurn",
-		"possibleactions" => array("playEdge", ),
+		"possibleactions" => array("playEdge", "resetTurn", "confirmTurn"),
     	"transitions" => array(
             "playEdge" => STATE_EVALUATE_PLAYER_MOVE,
+            "resetTurn" => STATE_RESET_TURN,
+            "confirmTurn" => STATE_CONFIRM_TURN,
             "zombiePass" => STATE_NEXT_PLAYER,
         ),
     ),
@@ -92,8 +96,7 @@ $machinestates = array(
         "updateGameProgression" => true,
         "transitions" => array(
             "districtTieBreak" => STATE_DISTRICT_TIE_BREAK,
-            "samePlayer" => STATE_SAME_PLAYER, 
-            "nextPlayer" => STATE_NEXT_PLAYER, 
+            "samePlayer" => STATE_SAME_PLAYER,
             "endGame" => STATE_END_GAME),
     ),
 
@@ -123,6 +126,25 @@ $machinestates = array(
 		"possibleactions" => array("selectDistrictWinner"),
     	"transitions" => array(
             "selectDistrictWinner" => STATE_EVALUATE_PLAYER_MOVE),
+    ),
+
+    STATE_RESET_TURN => array(
+        "name" => "resetTurn",
+        "description" => "",
+        "type" => "game",
+        "action" => "stResetTurn",
+        "transitions" => array("continueSamePlayer" => STATE_PLAYER_TURN),
+    ),
+
+    STATE_CONFIRM_TURN => array(
+        "name" => "confirmTurn",
+        "description" => "",
+        "type" => "game",
+        "action" => "stConfirmTurn",
+        "transitions" => array(
+            "nextPlayer" => STATE_NEXT_PLAYER,
+            "endGame" => STATE_END_GAME,
+        )
     ),
    
     // Final state.

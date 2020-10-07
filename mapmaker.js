@@ -252,6 +252,16 @@ function (dojo, declare) {
         {             
             if (this.isCurrentPlayerActive()) {
                 switch(stateName) {
+                    case "playerTurn":
+                        if (args.shouldShowConfirm) {
+                            this.addActionButton(
+                                "confirmTurn", _("Confirm"), "onConfirmTurn");
+                        }
+                        if (args.shouldShowReset) {
+                            this.addActionButton(
+                                "resetTurn", _("Reset"), "onResetTurn");
+                        }
+                        break;
                     case "districtTieBreak":
                         for (var color of args.possibleWinners) {
                             var id = "mmk_district_tiebreak_"
@@ -370,7 +380,7 @@ function (dojo, declare) {
         },
         
         onChooseDistrictTieBreak: function (arg) {
-            // Check that this action is posible.
+            // Check that this action is possible.
             if (!this.checkAction("selectDistrictWinner")) {
                 return;
             }
@@ -383,6 +393,27 @@ function (dojo, declare) {
                     id: id,
                     color: color,
                 }, this, function (result) { });
+        },
+
+        onResetTurn: function(arg) {
+            // Check that this action is possible.
+            if (!this.checkAction("resetTurn")) {
+                return;
+            }
+
+            this.ajaxcall(
+                "/mapmaker/mapmaker/resetTurn.html", {}, this,
+                function(result) {});
+        },
+
+        onConfirmTurn: function(arg) {
+            if (!this.checkAction("confirmTurn")) {
+                return;
+            }
+
+            this.ajaxcall(
+                "/mapmaker/mapmaker/confirmTurn.html", {}, this,
+                function(result) {});
         },
 
         

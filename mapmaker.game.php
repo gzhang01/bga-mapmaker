@@ -35,6 +35,7 @@ class mapmaker extends Table
         self::initGameStateLabels( array( 
             "turn_number" => 10,
             "player_turns_taken" => 11,
+            "reset_turn_player_id"=> 12,
             //    "my_first_global_variable" => 10,
             //    "my_second_global_variable" => 11,
             //      ...
@@ -101,6 +102,9 @@ class mapmaker extends Table
 
         // Activate first player (which is in general a good idea :) )
         $this->activeNextPlayer();
+
+        // Create save point for first player.
+        self::createSavePoint();
 
         /************ End of the game initialization *****/
     }
@@ -598,6 +602,23 @@ class mapmaker extends Table
         }
     }
 
+    function isSameCounty($county1, $county2) {
+        if (count($county1) !== count($county2)) {
+            return false;
+        }
+        foreach ($county1 as $county) {
+            if (!in_array($county, $county2)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private function createSavePoint() {
+        self::setGameStateValue(
+            "reset_turn_player_id", self::getActivePlayerId());
+        self::undoSavePoint();
+    }
 
 //////////////////////////////////////////////////////////////////////////////
 //////////// Player actions
@@ -670,24 +691,20 @@ class mapmaker extends Table
         $this->gamestate->nextState("playEdge");
     }
 
-    function isSameCounty($county1, $county2) {
-        if (count($county1) !== count($county2)) {
-            return false;
-        }
-        foreach ($county1 as $county) {
-            if (!in_array($county, $county2)) {
-                return false;
-            }
-        }
-        return true;
-    }
-
     function selectDistrictWinner($id, $color) {
         self::checkAction("selectDistrictWinner");
         self::DbQuery(
             "UPDATE districts SET player_color='$color' WHERE id='$id'");
         self::notifyDistrictCreation($id, $color);
         $this->gamestate->nextState("selectDistrictWinner");
+    }
+
+    function resetTurn() {
+        $this->gamestate->nextState("resetTurn");
+    }
+
+    function confirmTurn() {
+        $this->gamestate->nextState("confirmTurn");
     }
 
     
@@ -705,7 +722,12 @@ class mapmaker extends Table
                     "must place 1 district border ($edgesRemain remaining)") :
                 self::_(
                     "must place $edgesToPlay district borders ($edgesRemain remaining)");
-        return array("str" => $str);
+        return array(
+            "str" => $str,
+            "shouldShowConfirm" => 
+                $edgesRemain == 0 || self::getRemainingCountiesCount() == 0,
+            "shouldShowReset" => $edgesPlayed > 0,
+        );
     }
 
     function argNextPlayer() {
@@ -746,20 +768,8 @@ class mapmaker extends Table
             return;
         }
 
-        // Determine if the game is over.
-        if (self::getRemainingCountiesCount() == 0) {
-            self::finalizeStatistics();
-            $this->gamestate->nextState("endGame");
-            return;
-        }
-
-        // Determine whether player has played all edges.
         $turnsTaken = self::getGameStateValue("player_turns_taken");
-        if ($turnsTaken < self::getEdgesToPlay()) {
-            $this->gamestate->nextState("samePlayer");
-        } else {
-            $this->gamestate->nextState("nextPlayer");
-        }
+        $this->gamestate->nextState("samePlayer");
     }
 
     function stSamePlayer() {
@@ -778,6 +788,28 @@ class mapmaker extends Table
         self::setGameStateValue("player_turns_taken", 0);
         self::incGameStateValue("turn_number", 1);
         $this->gamestate->nextState("continueNextPlayer");
+
+        // Generate new save point.
+        self::createSavePoint();
+    }
+
+    function stResetTurn() {
+        // If current active player was not the same as the save point player
+        if (self::getActivePlayerId() 
+                != self::getGameStateValue("reset_turn_player_id")) {
+            throw new BgaVisibleSystemException(
+                "Internal error: Save pointer player is not active player.");
+        }
+        self::undoRestorePoint();
+        $this->gamestate->nextState("continueSamePlayer");
+    }
+
+    function stConfirmTurn() {
+        if (self::getRemainingCountiesCount() == 0) {
+            self::finalizeStatistics();
+            $this->gamestate->nextState("endGame");
+        }
+        $this->gamestate->nextState("nextPlayer");
     }
 
 //////////////////////////////////////////////////////////////////////////////
