@@ -626,6 +626,13 @@ class mapmaker extends Table
 
     function playEdge($x1, $y1, $x2, $y2) {
         self::checkAction("playEdge");
+
+        if (self::getGameStateValue("player_turns_taken") >= 
+                self::getEdgesToPlay()) {
+            throw new BgaUserException(
+                self::_("You have no district borders left to play!"));
+        }
+
         $edges = self::getEdgesAsObjectList();
         $counties = self::getCountiesAsDoubleKeyCollection();
         $edge = self::findEdge($edges, $x1, $y1, $x2, $y2);
