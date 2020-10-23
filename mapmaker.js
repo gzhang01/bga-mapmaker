@@ -32,6 +32,9 @@ function (dojo, declare) {
             this.greenPlayerColor = "008000";
             this.yellowPlayerColor = "fd9409";
             this.neutralCountyColor = "000000";
+
+            // Confirmation turn processing
+            this.isConfirmProcessing = false;
         },
         
         /*
@@ -418,10 +421,15 @@ function (dojo, declare) {
             if (!this.checkAction("confirmTurn")) {
                 return;
             }
+            if (this.isConfirmProcessing) {
+                return;
+            }
 
+            this.isConfirmProcessing = true;
+            var that = this;
             this.ajaxcall(
                 "/mapmaker/mapmaker/confirmTurn.html", {}, this,
-                function(result) {});
+                function(result) { that.isConfirmProcessing = false; });
         },
 
         
