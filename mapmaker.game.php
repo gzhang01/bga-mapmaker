@@ -365,7 +365,9 @@ class mapmaker extends Table
     }
 
     private function isValidDistrict($counties, $edges) {
-        if (count($counties) < 4) {
+        // Theoretically the biggest valid district is size 19. This occurs
+        // with one center hex and six three-legged arms around it.
+        if (count($counties) < 4 || count($counties) > 19) {
             return false;
         }
         if (count($counties) >= 4 && count($counties) <= 7) {
@@ -387,44 +389,100 @@ class mapmaker extends Table
             }
         }
 
-        // Check whether any valid edges can be placed within blocks.
-        // If no edge placements are valid, then this is a district.
-        foreach ($edgesWithinDistrict as $edge) {
-            // If this edge placement results in invalid districts, we cannot place this edge. Continue on to other edges.
-            if (self::createsInvalidDistrict($edge, $edgesWithinDistrict)) {
-                continue;
-            }
-            // Three section arm has two counties with two neighbors and one county with three neighbors. Thus one endpoint of this border must have two neighbors. Get that one.
-            $counties = array(array($edge["x1"], $edge["y1"]), 
-                                    array($edge["x2"], $edge["y2"]));
-            $neighbors = self::getDistrictNeighbors($edgesWithinDistrict);
-            $twoNeighborCounty = array();
-            if (self::getNeighborCount($counties[0], $neighbors) == 2) {
-                $twoNeighborCounty = $counties[0];
-            } else if (self::getNeighborCount($counties[1], $neighbors) == 2) {
-                $twoNeighborCounty = $counties[1];
-            } else {
-                return false;
-            }
-            
-            // Expect one neighbor of this county to have 2 neighbors. Other to have 3.
-            $neighborsOf2N = 
-                $neighbors[$twoNeighborCounty[0]][$twoNeighborCounty[1]];
-            if ((self::getNeighborCount($neighborsOf2N[0], $neighbors) == 2 &&  
-                 self::getNeighborCount($neighborsOf2N[1], $neighbors) == 3) || 
-                (self::getNeighborCount($neighborsOf2N[0], $neighbors) == 3 && 
-                 self::getNeighborCount($neighborsOf2N[1], $neighbors) == 2)) {
-                // Check that these two neighbors are neighbors of each other by validating that one is in the neighbors list of the other. If so, this is a three-prong arm and we continue searching.
-                $needle = $neighborsOf2N[0];
-                $haystack = 
-                    $neighbors[$neighborsOf2N[1][0]][$neighborsOf2N[1][1]];
-                if (in_array($needle, $haystack)) {
-                    continue;
-                }
-            }
+        // Generate neighbors count to counties map.
+        $neighbors = self::getDistrictNeighbors($edgesWithinDistrict);
+        $neighborCountMap = array(
+            1 => array(),
+            2 => array(),
+            3 => array(),
+            4 => array(),
+            5 => array(),
+            6 => array(),
+        );
+        foreach ($counties as $county) {
+            $count = self::getNeighborCount($county, $neighbors);
+            $neighborCountMap[$count][] = $county;
+        }
+
+        // If more than 1 county with >= 4 neighbors, then should be 
+        // splittable.
+        if (count($neighborCountMap[4]) + count($neighborCountMap[5]) 
+                + count($neighborCountMap[6]) > 1) {
             return false;
         }
-        return true;
+
+        // Try to mark the cells with 1-2 neighbors.
+        // County -> marks map.
+        $marks = array();
+        $markId = 0;
+        foreach ($counties as $county) {
+            $marks[self::getCountyId($county)] = array();
+        }
+        foreach (array_merge($neighborCountMap[1], $neighborCountMap[2]) 
+                as $county) {
+            // If county already marked, skip it
+            if (count($marks[self::getCountyId($county)]) > 0) {
+                continue;
+            }
+            $newMarkedCells = self::getMarks($county, $neighbors);
+            foreach ($newMarkedCells as $cell) {
+                $marks[self::getCountyId($cell)][] = $markId;
+            }
+            $markId += 1;
+        }
+
+        // If every cell is marked and at least one cell has all marks, then 
+        // valid district.
+        $hasAllMarks = false;
+        foreach ($marks as $mark) {
+            if (count($mark) == 0) {
+                return false;
+            }
+            if (count($mark) == $markId) {
+                $hasAllMarks = true;
+            }
+        }
+        return $hasAllMarks;  
+    }
+
+    private function getCountyId($county) {
+        return "{$county[0]}_{$county[1]}";
+    }
+
+    private function getMarks($county, $neighbors) {
+        $marks = array();
+        $candidates = array($county);
+        while (count($candidates) <= 4) {
+            $frontier = array();
+            foreach($candidates as $c) {
+                foreach ($neighbors[$c[0]][$c[1]] as $neighbor) {
+                    if (!in_array($neighbor, $candidates)) {
+                        $frontier[] = $c;
+                        break;
+                    }
+                }
+            }
+            if (count($frontier) == 0) {
+                throw new BgaVisibleSystemException(
+                    "Frontier should never be empty!");
+            }
+            if (count($frontier) == 1) {
+                $marks = $candidates;
+            }
+            $fewest = $frontier[0];
+            foreach ($frontier as $element) {
+                if (self::getNeighborCount($element, $neighbors) < 
+                        self::getNeighborCount($fewest, $neighbors)) {
+                    $fewest = $element;
+                }
+            }
+            foreach ($neighbors[$fewest[0]][$fewest[1]] as $neighbor) {
+                if (!in_array($neighbor, $candidates)) {
+                    $candidates[] = $neighbor;
+                }
+            }
+        }
+        return $marks;
     }
 
     // $county array([0] -> x, [1] -> y).
