@@ -505,9 +505,11 @@ class mapmaker extends Table
     private function getMarks($county, $neighbors) {
         $marks = array();
         $candidates = array($county);
-        $frontierForMarked = array();
-        $wasMarkedLastIteration = false;
-        while (true) {
+        // Neighbors of marked cells.
+        // These should be the newest candidates (since last marked).
+        $markedNeighbors = array();
+        while (count($candidates) <= 4) {
+            $wasMarkedThisIteration = false;
             // Construct the frontier.
             $frontier = array();
             foreach($candidates as $c) {
@@ -523,22 +525,12 @@ class mapmaker extends Table
                 throw new BgaVisibleSystemException(
                     "Frontier should never be empty!");
             }
-            if ($wasMarkedLastIteration) {
-                $frontierForMarked = $frontier;
-                $wasMarkedLastIteration = false;
-            }
-
-            // If too many candidates, exit the loop.
-            // We would normally exit the loop at the beginning, but we'd want to
-            // construct the frontier again if the last set was added.
-            if (count($candidates) > 4) {
-                break;
-            }
 
             // If frontier has size 1, then mark all candidates.
             if (count($frontier) == 1) {
                 $marks = $candidates;
-                $wasMarkedLastIteration = true;
+                $wasMarkedThisIteration = true;
+                $markedNeighbors = array();
             }
 
             // Find new candidates using frontier cell with fewest neighbors.
@@ -552,10 +544,13 @@ class mapmaker extends Table
             foreach ($neighbors[$fewest[0]][$fewest[1]] as $neighbor) {
                 if (!in_array($neighbor, $candidates)) {
                     $candidates[] = $neighbor;
+                    if ($wasMarkedThisIteration) {
+                        $markedNeighbors[] = $neighbor;
+                    }
                 }
             }
         }
-        return [$marks, $frontierForMarked];
+        return [$marks, $markedNeighbors];
     }
 
     // $county array([0] -> x, [1] -> y).
