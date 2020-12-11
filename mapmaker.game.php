@@ -413,36 +413,89 @@ class mapmaker extends Table
 
         // Try to mark the cells with 1-2 neighbors.
         // County -> marks map.
-        $marks = array();
+        $countyToMarks = array();
+        // Mark -> counties map
+        $markToCounties = array();
+        // Mark -> frontiers map
+        $markToFrontiers = array();
         $markId = 0;
         foreach ($counties as $county) {
-            $marks[self::getCountyId($county)] = array();
+            $countyToMarks[self::getCountyId($county)] = array();
         }
         foreach (array_merge($neighborCountMap[1], $neighborCountMap[2]) 
                 as $county) {
             // If county already marked, skip it
-            if (count($marks[self::getCountyId($county)]) > 0) {
+            if (count($countyToMarks[self::getCountyId($county)]) > 0) {
                 continue;
             }
-            $newMarkedCells = self::getMarks($county, $neighbors);
+            list($newMarkedCells, $frontier) = self::getMarks($county, $neighbors);
             foreach ($newMarkedCells as $cell) {
-                $marks[self::getCountyId($cell)][] = $markId;
+                $countyToMarks[self::getCountyId($cell)][] = $markId;
             }
+            $markToCounties[$markId] = $newMarkedCells;
+            $markToFrontiers[$markId] = $frontier;
             $markId += 1;
         }
 
         // If every cell is marked and at least one cell has all marks, then 
         // valid district.
         $hasAllMarks = false;
-        foreach ($marks as $mark) {
-            if (count($mark) == 0) {
+        foreach ($countyToMarks as $marks) {
+            if (count($marks) == 0) {
                 return false;
             }
-            if (count($mark) == $markId) {
+            if (count($marks) == $markId) {
                 $hasAllMarks = true;
             }
         }
-        return $hasAllMarks;  
+        if ($hasAllMarks) {
+            return true;
+        }
+
+        // Otherwise, check the frontiers for required merging.
+        for ($i = 0; $i < $markId; $i++) {
+            // Ignore if size is already 4. This marked set will no longer expand.
+            if (count($markToCounties[$i]) == 4) {
+                continue;
+            }
+
+            // If any of the frontiers are not marked, we can't assert anything
+            $frontiers = $markToFrontiers[$i];
+            $frontierUnmarked = false;
+            foreach ($frontiers as $frontier) {
+                if (count($countyToMarks[self::getCountyId($frontier)]) == 0) {
+                    $frontierUnmarked = true;
+                    break;
+                }
+            }
+            if ($frontierUnmarked) {
+                continue;
+            }
+
+            // If all frontiers are marked, check extraneous counties for each frontier merge.
+            $extraneousCounts = array();
+            foreach ($markToFrontiers[$i] as $c) {
+            }
+            foreach ($frontiers as $frontier) {
+                $includedCounties = array();
+                foreach ($markToCounties[$i] as $county) {
+                    $includedCounties[self::getCountyId($county)] = true;
+                }
+
+                foreach ($countyToMarks[self::getCountyId($frontier)] as $mark) {
+                    foreach($markToCounties[$mark] as $county) {
+                        $includedCounties[self::getCountyId($county)] = true;
+                    }
+                }
+                $extraneousCounts[] = count($counties) - count($includedCounties);
+            }
+            if (max($extraneousCounts) < 4) {
+                return true;
+            }
+        }
+
+        // Otherwise, this set of counties likely can be split.
+        return false;
     }
 
     private function getCountyId($county) {
@@ -452,7 +505,10 @@ class mapmaker extends Table
     private function getMarks($county, $neighbors) {
         $marks = array();
         $candidates = array($county);
-        while (count($candidates) <= 4) {
+        $frontierForMarked = array();
+        $wasMarkedLastIteration = false;
+        while (true) {
+            // Construct the frontier.
             $frontier = array();
             foreach($candidates as $c) {
                 foreach ($neighbors[$c[0]][$c[1]] as $neighbor) {
@@ -462,13 +518,30 @@ class mapmaker extends Table
                     }
                 }
             }
+
             if (count($frontier) == 0) {
                 throw new BgaVisibleSystemException(
                     "Frontier should never be empty!");
             }
+            if ($wasMarkedLastIteration) {
+                $frontierForMarked = $frontier;
+                $wasMarkedLastIteration = false;
+            }
+
+            // If too many candidates, exit the loop.
+            // We would normally exit the loop at the beginning, but we'd want to
+            // construct the frontier again if the last set was added.
+            if (count($candidates) > 4) {
+                break;
+            }
+
+            // If frontier has size 1, then mark all candidates.
             if (count($frontier) == 1) {
                 $marks = $candidates;
+                $wasMarkedLastIteration = true;
             }
+
+            // Find new candidates using frontier cell with fewest neighbors.
             $fewest = $frontier[0];
             foreach ($frontier as $element) {
                 if (self::getNeighborCount($element, $neighbors) < 
@@ -482,7 +555,7 @@ class mapmaker extends Table
                 }
             }
         }
-        return $marks;
+        return [$marks, $frontierForMarked];
     }
 
     // $county array([0] -> x, [1] -> y).
