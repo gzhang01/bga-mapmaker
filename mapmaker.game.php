@@ -753,6 +753,12 @@ class mapmaker extends Table
     function playEdge($x1, $y1, $x2, $y2) {
         self::checkAction("playEdge");
 
+        if (self::GetGameStateValue("player_turns_taken") == 0) {
+            $player_color_to_remove = 
+                self::getPlayerColor(self::getActivePlayerId());
+            self::removeEdgePlayerColor($player_color_to_remove);
+        }
+
         if (self::getGameStateValue("player_turns_taken") >= 
                 self::getEdgesToPlay()) {
             throw new BgaUserException(
@@ -790,7 +796,7 @@ class mapmaker extends Table
         self::incGameStateValue("player_turns_taken", 1);
         self::notifyAllPlayers(
             "playedEdge", 
-            clienttranslate('${player_name} plays an edge (${edgesPlayed}/${edgesToPlay}).'), 
+            clienttranslate('${player_name} plays an edge (${edges_played}/${edges_to_play}).'), 
             array(
                 "player_id" => self::getActivePlayerId(),
                 "player_name" => self::getActivePlayerName(),
@@ -799,8 +805,8 @@ class mapmaker extends Table
                 "y1" => $y1,
                 "x2" => $x2,
                 "y2" => $y2,
-                "edgesPlayed" => self::getGameStateValue("player_turns_taken"),
-                "edgesToPlay" => self::getEdgesToPlay(),
+                "edges_played" => self::getGameStateValue("player_turns_taken"),
+                "edges_to_play" => self::getEdgesToPlay(),
             ));
 
         // Check for valid district formation
@@ -910,14 +916,10 @@ class mapmaker extends Table
     }
 
     function stNextPlayer() {
-        $player_color_to_remove = 
-            self::getPlayerColor(self::getActivePlayerId());
-
         // Activate next player.
         $player_id = self::activeNextPlayer();
 
         self::giveExtraTime($player_id);
-        self::removeEdgePlayerColor($player_color_to_remove);
         self::setGameStateValue("player_turns_taken", 0);
         self::incGameStateValue("turn_number", 1);
         $this->gamestate->nextState("continueNextPlayer");

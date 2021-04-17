@@ -215,13 +215,7 @@ function (dojo, declare) {
         {   
             switch (stateName) {
                 case "nextPlayer":
-                    // Remove the player color border around the edge.
-                    var edgeClass = "mmk_edge_" + args.args.playerColor;
-                    dojo.query("." + edgeClass).removeClass(edgeClass);
-                    // Shows the underlying white border.
-                    dojo.query(".mmk_hidden_" + args.args.playerColor)
-                        .removeClass(
-                            "mmk_hidden mmk_hidden_" + args.args.playerColor);
+                    this.shouldRemoveColorBorders = true;
                     break;
                 case "districtTieBreak":
                     for (var county of args.args.counties) {
@@ -358,6 +352,16 @@ function (dojo, declare) {
             }
         },
 
+        removePlayerColorFromEdges: function(color) {
+            // Remove the player color border around the edge.
+            var edgeClass = "mmk_edge_" + color;
+            dojo.query("." + edgeClass).removeClass(edgeClass);
+            // Shows the underlying white border.
+            dojo.query(".mmk_hidden_" + color)
+                .removeClass(
+                    "mmk_hidden mmk_hidden_" + color);
+        },
+
         ///////////////////////////////////////////////////
         //// Player's action
         
@@ -458,6 +462,12 @@ function (dojo, declare) {
 
         notif_playedEdge: function(notif) {
             var id = `(${notif.args.x1},${notif.args.y1})_(${notif.args.x2},${notif.args.y2})`;
+
+            // If this is the first move, remove the current player's colors.
+            console.log(notif.args.edges_played);
+            if (notif.args.edges_played == 1) {
+                this.removePlayerColorFromEdges(notif.args.player_color);
+            }
 
             // Place the edge.
             dojo.place(this.format_block("jstpl_edge", {id: id}), "mmk_edges");
