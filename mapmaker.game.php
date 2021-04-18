@@ -196,7 +196,7 @@ class mapmaker extends Table
         $current_player_id = self::getCurrentPlayerId();    // !! We must only return informations visible by this player !!
     
         // Get information about players
-        $sql = "SELECT player_id id, player_score score FROM player ";
+        $sql = "SELECT player_id id, player_score score, player_score_aux swing_counties FROM player";
         $result['players'] = self::getCollectionFromDb( $sql );
   
         // TODO: Gather all information about current game situation (visible by player $current_player_id).
@@ -611,11 +611,6 @@ class mapmaker extends Table
             "UPDATE player 
              SET player_score=player_score+1 
              WHERE player_color='$winnerColor'");
-        $newScores = self::getCollectionFromDb(
-            "SELECT player_id, player_score FROM player", true);
-        self::notifyAllPlayers("newScores", "", array(
-            "scores" => $newScores,
-        ));
 
         // Update tiebreak score (based on swing counties)
         $numSwingCounties = self::getNumSwingCounties($district);
@@ -627,6 +622,13 @@ class mapmaker extends Table
             self::incStat(
                 $numSwingCounties, "swing_counties_won", $winnerPlayerId);
         }
+
+        // Update the client of new scores.
+        $newScores = self::getCollectionFromDb(
+            "SELECT player_id, player_score, player_score_aux FROM player");
+        self::notifyAllPlayers("newScores", "", array(
+            "scores" => $newScores,
+        ));
 
         // Update statistics for winner.
         $districtInfo = 
@@ -648,6 +650,7 @@ class mapmaker extends Table
         }
     }
 
+    // Gets number of swing counties within the set of counties.
     private function getNumSwingCounties($counties) {
         $count = 0;
         foreach ($counties as $county) {

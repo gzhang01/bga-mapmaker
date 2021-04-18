@@ -31,12 +31,26 @@
 
 <script type="text/javascript">
     var jstpl_county = '<div id="mmk_county_${id}" class="mmk_county"></div>';
-    var jstpl_district_meeple = 
-        '<div id="mmk_district_meeple_${id}" class="mmk_district_meeple"></div>';
+    var jstpl_district_meeple = `
+        <div id="mmk_district_meeple_\${id}" 
+              class="mmk_district_meeple mmk_district_meeple_\${color}">
+        </div>`;
     var jstpl_edge = '<div id="mmk_edge_${id}" class="mmk_edge"></div>';
     var jstpl_edge_border = 
         '<div id="mmk_edge_border_${id}" class="mmk_edge mmk_edge_border"></div>';
     var jstpl_overlay = '<div id="mmk_overlay_${id}" class="mmk_overlay"></div>';
-</script>  
+    var jstpl_player_panel = `
+        <div class="mmk_player_panel mmk_player_\${id}">
+            <div class="mmk_player_panel_meeple_wrapper">
+                <div class="mmk_player_panel_meeple mmk_district_meeple_\${color}"></div>
+            </div>
+            <div class="mmk_player_panel_data">
+                <div>
+                    <div id="mmk_swing_county_icon_\${id}" class="mmk_swing_county_icon"></div>
+                    <span id="mmk_swing_county_count_\${id}">\${swing_counties}</span>
+                </div>
+            </div>
+        </div>`;
+</script>
 
 {OVERALL_GAME_FOOTER}

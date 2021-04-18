@@ -53,11 +53,15 @@ function (dojo, declare) {
         setup: function( gamedatas )
         {
             // Setting up player boards
+            // Remove any existing player boards (necessary if a user restarts their turn).
+            dojo.query(".mmk_player_panel").forEach(dojo.destroy);
             for( var player_id in gamedatas.players )
             {
                 var player = gamedatas.players[player_id];
-                         
-                // TODO: Setting up players boards if needed
+                
+                // Construct their new player board.
+                dojo.place(this.format_block("jstpl_player_panel", player), `overall_player_board_${player_id}`);
+                this.addTooltipToClass("mmk_swing_county_icon", _("Number swing counties won"), "")
             }
             
             // Set up initial tiles.
@@ -127,21 +131,6 @@ function (dojo, declare) {
                     break;
             }
             return `${x}px ${y}px`;
-        },
-
-        getDistrictBackgroundPosition: function(color) {
-            switch (color) {
-                case this.yellowPlayerColor:
-                    return "-15px -75px";
-                case this.greenPlayerColor:
-                    return "-15px -12px";
-                case this.bluePlayerColor:
-                    return "-85px -63px";
-                case this.redPlayerColor:
-                    return "-78px -3px";
-                default:
-                    return;
-            }
         },
 
         getOverlayBackgroundPosition: function(color) {
@@ -315,7 +304,8 @@ function (dojo, declare) {
         placeDistrictMeeple: function(id, playerId, winnerColor, 
                                       shouldAnimateMeeple) {
             dojo.place(this.format_block("jstpl_district_meeple", {
-                id: id
+                id: id,
+                color: winnerColor,
             }), "mmk_districts");
             if (shouldAnimateMeeple) {
                 this.placeOnObject(
@@ -329,12 +319,6 @@ function (dojo, declare) {
                     "mmk_district_meeple_" + id,
                     "mmk_county_location_" + id);
             }
-
-            // Set proper background position to render meeple.
-            dojo.style(
-                "mmk_district_meeple_" + id, "backgroundPosition",
-                this.getDistrictBackgroundPosition(winnerColor)
-            );
         },
 
         getUserReadablePlayerColor: function(color) {
@@ -464,7 +448,6 @@ function (dojo, declare) {
             var id = `(${notif.args.x1},${notif.args.y1})_(${notif.args.x2},${notif.args.y2})`;
 
             // If this is the first move, remove the current player's colors.
-            console.log(notif.args.edges_played);
             if (notif.args.edges_played == 1) {
                 this.removePlayerColorFromEdges(notif.args.player_color);
             }
@@ -502,7 +485,9 @@ function (dojo, declare) {
 
         notif_newScores: function(notif) {
             for (var player_id in notif.args.scores) {
-                this.scoreCtrl[player_id].toValue(notif.args.scores[player_id]);
+                let player = notif.args.scores[player_id];
+                this.scoreCtrl[player_id].toValue(player.player_score);
+                dojo.attr(dojo.byId(`mmk_swing_county_count_${player_id}`), "innerHTML", player.player_score_aux);
             }
         },
    });             
